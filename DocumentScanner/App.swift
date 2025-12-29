@@ -4,7 +4,7 @@ import SwiftUI
 struct DocumentScannerApp: App {
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            ScanFlowCoordinator()
         }
     }
 }

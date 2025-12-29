@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Sheet view for editing PDF filename
-struct FilenameEditorView: View {
+struct FilenameEditorSheet: View {
     @Binding var filename: String
     @Environment(\.dismiss) private var dismiss
     let onSave: () -> Void
@@ -86,7 +86,7 @@ struct FilenameEditorView: View {
 }
 
 #Preview {
-    FilenameEditorView(
+    FilenameEditorSheet(
         filename: .constant("2025-12-29 Example Document"),
         onSave: {}
     )

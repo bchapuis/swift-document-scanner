@@ -2,7 +2,7 @@ import SwiftUI
 import VisionKit
 
 /// UIKit coordinator to bridge VNDocumentCameraViewController with SwiftUI
-final class DocumentScannerCoordinator: NSObject, VNDocumentCameraViewControllerDelegate {
+final class CameraScannerCoordinator: NSObject, VNDocumentCameraViewControllerDelegate {
     let onComplete: (Document) -> Void
     let onCancel: () -> Void
     let onError: (ScanError) -> Void

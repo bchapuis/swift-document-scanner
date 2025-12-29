@@ -2,7 +2,7 @@ import SwiftUI
 import PDFKit
 
 /// Sheet view for previewing and editing the generated PDF
-struct PDFPreviewView: View {
+struct PDFEditorSheet: View {
     let pdfData: Data
     let onUpdate: ((Data) -> Void)?
     @Environment(\.dismiss) private var dismiss
@@ -279,5 +279,5 @@ class PDFThumbnailCell: UICollectionViewCell {
         text.draw(at: CGPoint(x: 50, y: 50), withAttributes: attributes)
     }
 
-    return PDFPreviewView(pdfData: data)
+    return PDFEditorSheet(pdfData: data)
 }

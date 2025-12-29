@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// SwiftUI wrapper for UIDocumentPickerViewController to save PDFs
-struct DocumentPickerView: UIViewControllerRepresentable {
+struct FileSaveView: UIViewControllerRepresentable {
     let pdfData: Data
     let suggestedFilename: String
     let onSave: (URL) -> Void

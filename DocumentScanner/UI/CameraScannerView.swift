@@ -2,13 +2,13 @@ import SwiftUI
 import VisionKit
 
 /// SwiftUI wrapper for VNDocumentCameraViewController
-struct DocumentScannerView: UIViewControllerRepresentable {
+struct CameraScannerView: UIViewControllerRepresentable {
     let onComplete: (Document) -> Void
     let onCancel: () -> Void
     let onError: (ScanError) -> Void
     
-    func makeCoordinator() -> DocumentScannerCoordinator {
-        DocumentScannerCoordinator(
+    func makeCoordinator() -> CameraScannerCoordinator {
+        CameraScannerCoordinator(
             onComplete: onComplete,
             onCancel: onCancel,
             onError: onError

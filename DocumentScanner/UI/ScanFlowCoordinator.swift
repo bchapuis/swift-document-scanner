@@ -101,15 +101,9 @@ final class HomeViewModel: ObservableObject {
         showEditFilename = true
     }
 
-    func saveDocument(editFilename: Bool) {
+    func saveDocument() {
         guard currentPDFData != nil else { return }
-
-        if editFilename {
-            prepareEditFilename()
-        } else {
-            // Use suggested filename directly
-            showDocumentPicker = true
-        }
+        showDocumentPicker = true
     }
 
     func confirmEditedFilename() {
@@ -138,7 +132,6 @@ final class HomeViewModel: ObservableObject {
 
     func handleSaveComplete(url: URL) {
         showDocumentPicker = false
-        // Could show a success message here
         resetSession()
     }
 
@@ -152,173 +145,73 @@ final class HomeViewModel: ObservableObject {
     }
 }
 
-struct HomeView: View {
+struct ScanFlowCoordinator: View {
     @StateObject private var viewModel = HomeViewModel()
-    
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
+            Group {
+                switch viewModel.state {
+                case .idle, .scanning:
+                    // Step 1: Welcome
+                    WelcomeView(
+                        onScanTapped: viewModel.startScanning
+                    )
 
-                // App Icon/Logo placeholder (hidden when document is ready)
-                if case .completed = viewModel.state {
-                    // Hide header when document is ready to reduce clutter
-                } else {
-                    Image(systemName: "doc.text.viewfinder")
-                        .font(.system(size: 80))
-                        .foregroundStyle(.blue)
+                case .processing:
+                    // Step 2: Processing
+                    ProcessingView()
 
-                    Text("Document Scanner")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                case .completed(let document):
+                    // Step 3: Actions
+                    ActionsView(
+                        document: document,
+                        suggestedFilename: viewModel.suggestedFilename,
+                        onSave: viewModel.saveDocument,
+                        onEditPages: viewModel.showPreview,
+                        onEditName: viewModel.prepareEditFilename,
+                        onShare: viewModel.shareDocument,
+                        onScanAnother: {
+                            viewModel.resetSession()
+                            viewModel.startScanning()
+                        }
+                    )
 
-                    Text("Scan documents and save as searchable PDFs")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
+                case .failed(let error):
+                    // Error state
+                    VStack(spacing: 24) {
+                        Spacer()
 
-                Spacer()
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.red)
 
-                // Scan Button (hidden when document is ready)
-                if case .completed = viewModel.state {
-                    // Don't show scan button when document is ready
-                } else {
-                    Button {
-                        viewModel.startScanning()
-                    } label: {
-                        Label("Scan Document", systemImage: "camera.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundStyle(.white)
-                            .cornerRadius(12)
-                    }
-                    .padding(.horizontal)
-                    .disabled(viewModel.state == .scanning)
-                }
-
-                // Status messages and actions
-                if case .processing = viewModel.state {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-
-                        Text("Processing document...")
-                            .font(.headline)
-
-                        Text("Performing OCR and generating PDF")
-                            .font(.caption)
+                        Text(error.localizedDescription)
+                            .font(.body)
                             .foregroundStyle(.secondary)
-                    }
-                    .padding()
-                }
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
 
-                if case .failed(let error) = viewModel.state {
-                    Text(error.localizedDescription)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-
-                if case .completed(let document) = viewModel.state {
-                    VStack(spacing: 16) {
-                        // Compact document info
-                        VStack(spacing: 8) {
-                            Text(viewModel.suggestedFilename)
+                        Button {
+                            viewModel.resetSession()
+                        } label: {
+                            Text("Try Again")
                                 .font(.headline)
-                                .multilineTextAlignment(.center)
-
-                            Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundStyle(.white)
+                                .cornerRadius(12)
                         }
                         .padding(.horizontal)
 
-                        // Action buttons (stacked vertically)
-                        VStack(spacing: 12) {
-                            // Save to Files - Primary action
-                            Button {
-                                viewModel.saveDocument(editFilename: false)
-                            } label: {
-                                Label("Save to Files", systemImage: "folder.badge.plus")
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.blue)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(12)
-                            }
-
-                            // Secondary actions in lighter style
-                            VStack(spacing: 6) {
-                                // Edit Pages
-                                Button {
-                                    viewModel.showPreview()
-                                } label: {
-                                    Label("Edit Pages", systemImage: "doc.on.doc")
-                                        .font(.subheadline)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .padding(.horizontal)
-                                        .background(Color.secondary.opacity(0.15))
-                                        .foregroundStyle(.primary)
-                                        .cornerRadius(10)
-                                }
-
-                                // Edit Name
-                                Button {
-                                    viewModel.prepareEditFilename()
-                                } label: {
-                                    Label("Edit Name", systemImage: "character.cursor.ibeam")
-                                        .font(.subheadline)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .padding(.horizontal)
-                                        .background(Color.secondary.opacity(0.15))
-                                        .foregroundStyle(.primary)
-                                        .cornerRadius(10)
-                                }
-
-                                // Share
-                                Button {
-                                    viewModel.shareDocument()
-                                } label: {
-                                    Label("Share", systemImage: "square.and.arrow.up")
-                                        .font(.subheadline)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .padding(.horizontal)
-                                        .background(Color.secondary.opacity(0.15))
-                                        .foregroundStyle(.primary)
-                                        .cornerRadius(10)
-                                }
-                            }
-
-                            // Scan Another - Tertiary action
-                            Button {
-                                viewModel.resetSession()
-                                viewModel.startScanning()
-                            } label: {
-                                Text("Scan Another Document")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.blue)
-                                    .padding(.vertical, 8)
-                            }
-                        }
-                        .padding(.horizontal)
+                        Spacer()
                     }
-                    .padding(.horizontal)
                 }
-
-                Spacer()
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $viewModel.showScanner) {
-                DocumentScannerView(
+                CameraScannerView(
                     onComplete: { document in
                         viewModel.handleScanComplete(document)
                     },
@@ -333,7 +226,7 @@ struct HomeView: View {
             }
             .sheet(isPresented: $viewModel.showDocumentPicker) {
                 if let pdfData = viewModel.currentPDFData {
-                    DocumentPickerView(
+                    FileSaveView(
                         pdfData: pdfData,
                         suggestedFilename: viewModel.suggestedFilename,
                         onSave: { url in
@@ -362,7 +255,7 @@ struct HomeView: View {
                 Text("Camera access is required to scan documents. Please enable it in Settings.")
             }
             .sheet(isPresented: $viewModel.showEditFilename) {
-                FilenameEditorView(
+                FilenameEditorSheet(
                     filename: $viewModel.editedFilename,
                     onSave: {
                         viewModel.confirmEditedFilename()
@@ -371,7 +264,7 @@ struct HomeView: View {
             }
             .sheet(isPresented: $viewModel.showPDFPreview) {
                 if let pdfData = viewModel.currentPDFData {
-                    PDFPreviewView(pdfData: pdfData) { updatedData in
+                    PDFEditorSheet(pdfData: pdfData) { updatedData in
                         viewModel.updatePDFData(updatedData)
                     }
                 }
@@ -410,5 +303,5 @@ struct ShareSheet: UIViewControllerRepresentable {
 }
 
 #Preview {
-    HomeView()
+    ScanFlowCoordinator()
 }
