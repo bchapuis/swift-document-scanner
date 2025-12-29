@@ -1,0 +1,56 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./gradlew spotlessApply -q --console=plain 2>/dev/null || true",
+            "timeout": 30,
+            "description": "Auto-format Kotlin code with Spotless"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(./gradlew build)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🔨 Building project...'",
+            "timeout": 5,
+            "description": "Notify before build"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "date '+[%Y-%m-%d %H:%M:%S] User prompt' >> .claude/activity.log",
+            "timeout": 5,
+            "description": "Log user activity timestamps"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🚀 Claude Code session started at '$(date '+%Y-%m-%d %H:%M:%S') >> .claude/activity.log",
+            "timeout": 5,
+            "description": "Log session start"
+          }
+        ]
+      }
+    ]
+  }
+}
