@@ -15,30 +15,33 @@ struct FilenameEditorSheet: View {
 
                 // Icon
                 Image(systemName: "pencil.circle.fill")
-                    .font(.system(size: 60))
+                    .font(.system(size: 64))
                     .foregroundStyle(.blue)
 
-                // Instructions
-                Text("Edit filename")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                VStack(spacing: 8) {
+                    // Instructions
+                    Text("Edit Filename")
+                        .font(.title2)
+                        .fontWeight(.semibold)
 
-                // Text field
-                TextField("Document name", text: $filename)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.body)
-                    .multilineTextAlignment(.center)
-                    .focused($isTextFieldFocused)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        saveAndDismiss()
-                    }
-                    .padding(.horizontal, 32)
+                    // Text field
+                    TextField("Document name", text: $filename)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                        .focused($isTextFieldFocused)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            saveAndDismiss()
+                        }
+                        .padding(.top, 4)
 
-                // Character count hint
-                Text("\(filename.count) characters")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    // Character count hint
+                    Text("\(filename.count) characters")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 32)
 
                 Spacer()
 

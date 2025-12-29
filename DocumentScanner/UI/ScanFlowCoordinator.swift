@@ -183,14 +183,20 @@ struct ScanFlowCoordinator: View {
                         Spacer()
 
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 60))
+                            .font(.system(size: 64))
                             .foregroundStyle(.red)
 
-                        Text(error.localizedDescription)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                        VStack(spacing: 8) {
+                            Text("Something Went Wrong")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+
+                            Text(error.localizedDescription)
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal)
 
                         Button {
                             viewModel.resetSession()

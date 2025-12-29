@@ -6,23 +6,23 @@ struct ProcessingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            // Icon
-            Image(systemName: "gearshape.2.fill")
-                .font(.system(size: 60))
+            // Animated processing icon
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 64))
                 .foregroundStyle(.orange)
                 .symbolEffect(.pulse)
 
-            VStack(spacing: 12) {
-                Text("Processing document...")
-                    .font(.headline)
+            VStack(spacing: 8) {
+                Text("Processing Document")
+                    .font(.title2)
+                    .fontWeight(.semibold)
 
                 Text("Performing OCR and generating PDF")
-                    .font(.caption)
+                    .font(.body)
                     .foregroundStyle(.secondary)
-
-                ProgressView()
-                    .padding(.top, 8)
+                    .multilineTextAlignment(.center)
             }
+            .padding(.horizontal)
 
             Spacer()
         }

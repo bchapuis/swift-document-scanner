@@ -16,17 +16,18 @@ struct ActionsView: View {
 
             // Icon
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
+                .font(.system(size: 64))
                 .foregroundStyle(.green)
 
-            // Compact document info
+            // Document info
             VStack(spacing: 8) {
                 Text(suggestedFilename)
-                    .font(.headline)
+                    .font(.title3)
+                    .fontWeight(.semibold)
                     .multilineTextAlignment(.center)
 
                 Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")")
-                    .font(.caption)
+                    .font(.body)
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal)

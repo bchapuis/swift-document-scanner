@@ -10,20 +10,20 @@ struct WelcomeView: View {
 
             // App Icon/Logo
             Image(systemName: "doc.text.viewfinder")
-                .font(.system(size: 80))
+                .font(.system(size: 64))
                 .foregroundStyle(.blue)
 
-            Text("Document Scanner")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+            VStack(spacing: 8) {
+                Text("Document Scanner")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
 
-            Text("Scan documents and save as searchable PDFs")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            Spacer()
+                Text("Scan documents and save as searchable PDFs")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal)
 
             // Scan Button
             Button {
@@ -38,6 +38,7 @@ struct WelcomeView: View {
                     .cornerRadius(12)
             }
             .padding(.horizontal)
+            .padding(.top, 16)
 
             Spacer()
         }
