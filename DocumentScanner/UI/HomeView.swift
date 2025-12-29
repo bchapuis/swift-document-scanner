@@ -159,22 +159,26 @@ struct HomeView: View {
         NavigationStack {
             VStack(spacing: 24) {
                 Spacer()
-                
-                // App Icon/Logo placeholder
-                Image(systemName: "doc.text.viewfinder")
-                    .font(.system(size: 80))
-                    .foregroundStyle(.blue)
-                
-                Text("Document Scanner")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                
-                Text("Scan documents and save as searchable PDFs")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                
+
+                // App Icon/Logo placeholder (hidden when document is ready)
+                if case .completed = viewModel.state {
+                    // Hide header when document is ready to reduce clutter
+                } else {
+                    Image(systemName: "doc.text.viewfinder")
+                        .font(.system(size: 80))
+                        .foregroundStyle(.blue)
+
+                    Text("Document Scanner")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+
+                    Text("Scan documents and save as searchable PDFs")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+
                 Spacer()
 
                 // Scan Button (hidden when document is ready)
@@ -221,27 +225,18 @@ struct HomeView: View {
                 }
 
                 if case .completed(let document) = viewModel.state {
-                    VStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.largeTitle)
-                            .foregroundStyle(.green)
+                    VStack(spacing: 16) {
+                        // Compact document info
+                        VStack(spacing: 8) {
+                            Text(viewModel.suggestedFilename)
+                                .font(.headline)
+                                .multilineTextAlignment(.center)
 
-                        Text("PDF Ready!")
-                            .font(.headline)
-
-                        Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        // Suggested filename display
-                        Text(viewModel.suggestedFilename)
-                            .font(.subheadline)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color.secondary.opacity(0.1))
-                            .cornerRadius(8)
-                            .padding(.horizontal)
+                            Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal)
 
                         // Action buttons (stacked vertically)
                         VStack(spacing: 12) {
@@ -259,7 +254,7 @@ struct HomeView: View {
                             }
 
                             // Secondary actions in lighter style
-                            VStack(spacing: 8) {
+                            VStack(spacing: 6) {
                                 // Edit Pages
                                 Button {
                                     viewModel.showPreview()
@@ -267,7 +262,7 @@ struct HomeView: View {
                                     Label("Edit Pages", systemImage: "doc.on.doc")
                                         .font(.subheadline)
                                         .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
+                                        .padding(.vertical, 8)
                                         .padding(.horizontal)
                                         .background(Color.secondary.opacity(0.15))
                                         .foregroundStyle(.primary)
@@ -281,7 +276,7 @@ struct HomeView: View {
                                     Label("Edit Name", systemImage: "character.cursor.ibeam")
                                         .font(.subheadline)
                                         .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
+                                        .padding(.vertical, 8)
                                         .padding(.horizontal)
                                         .background(Color.secondary.opacity(0.15))
                                         .foregroundStyle(.primary)
@@ -295,7 +290,7 @@ struct HomeView: View {
                                     Label("Share", systemImage: "square.and.arrow.up")
                                         .font(.subheadline)
                                         .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
+                                        .padding(.vertical, 8)
                                         .padding(.horizontal)
                                         .background(Color.secondary.opacity(0.15))
                                         .foregroundStyle(.primary)
@@ -316,13 +311,12 @@ struct HomeView: View {
                         }
                         .padding(.horizontal)
                     }
-                    .padding()
+                    .padding(.horizontal)
                 }
 
                 Spacer()
             }
-            .navigationTitle("Home")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarHidden(true)
             .sheet(isPresented: $viewModel.showScanner) {
                 DocumentScannerView(
                     onComplete: { document in
