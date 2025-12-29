@@ -9,6 +9,7 @@ final class HomeViewModel: ObservableObject {
     @Published var showDocumentPicker = false
     @Published var showEditFilename = false
     @Published var showPDFPreview = false
+    @Published var showShareSheet = false
     @Published var currentDocument: Document?
     @Published var currentPDFData: Data?
     @Published var suggestedFilename: String = ""
@@ -131,6 +132,10 @@ final class HomeViewModel: ObservableObject {
         currentPDFData = data
     }
 
+    func shareDocument() {
+        showShareSheet = true
+    }
+
     func handleSaveComplete(url: URL) {
         showDocumentPicker = false
         // Could show a success message here
@@ -240,24 +245,11 @@ struct HomeView: View {
 
                         // Action buttons (stacked vertically)
                         VStack(spacing: 12) {
-                            // Edit Pages button
+                            // Save to Files - Primary action
                             Button {
-                                viewModel.showPreview()
+                                viewModel.saveDocument(editFilename: false)
                             } label: {
-                                Label("Edit Pages", systemImage: "doc.text.magnifyingglass")
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.purple)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(12)
-                            }
-
-                            // Edit Name button (primary action)
-                            Button {
-                                viewModel.prepareEditFilename()
-                            } label: {
-                                Label("Edit Name", systemImage: "pencil")
+                                Label("Save to Files", systemImage: "folder.badge.plus")
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding()
@@ -266,31 +258,60 @@ struct HomeView: View {
                                     .cornerRadius(12)
                             }
 
-                            // Save button (secondary action)
-                            Button {
-                                viewModel.saveDocument(editFilename: false)
-                            } label: {
-                                Label("Save to Files", systemImage: "square.and.arrow.down")
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.green)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(12)
+                            // Secondary actions in lighter style
+                            VStack(spacing: 8) {
+                                // Edit Pages
+                                Button {
+                                    viewModel.showPreview()
+                                } label: {
+                                    Label("Edit Pages", systemImage: "doc.on.doc")
+                                        .font(.subheadline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .padding(.horizontal)
+                                        .background(Color.secondary.opacity(0.15))
+                                        .foregroundStyle(.primary)
+                                        .cornerRadius(10)
+                                }
+
+                                // Edit Name
+                                Button {
+                                    viewModel.prepareEditFilename()
+                                } label: {
+                                    Label("Edit Name", systemImage: "character.cursor.ibeam")
+                                        .font(.subheadline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .padding(.horizontal)
+                                        .background(Color.secondary.opacity(0.15))
+                                        .foregroundStyle(.primary)
+                                        .cornerRadius(10)
+                                }
+
+                                // Share
+                                Button {
+                                    viewModel.shareDocument()
+                                } label: {
+                                    Label("Share", systemImage: "square.and.arrow.up")
+                                        .font(.subheadline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .padding(.horizontal)
+                                        .background(Color.secondary.opacity(0.15))
+                                        .foregroundStyle(.primary)
+                                        .cornerRadius(10)
+                                }
                             }
 
-                            // Scan Another Document button
+                            // Scan Another - Tertiary action
                             Button {
                                 viewModel.resetSession()
                                 viewModel.startScanning()
                             } label: {
-                                Label("Scan Another Document", systemImage: "camera.fill")
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.blue)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(12)
+                                Text("Scan Another Document")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.blue)
+                                    .padding(.vertical, 8)
                             }
                         }
                         .padding(.horizontal)
@@ -361,7 +382,36 @@ struct HomeView: View {
                     }
                 }
             }
+            .sheet(isPresented: $viewModel.showShareSheet) {
+                if let pdfData = viewModel.currentPDFData {
+                    ShareSheet(items: [pdfData], filename: viewModel.suggestedFilename)
+                }
+            }
         }
+    }
+}
+
+// MARK: - Share Sheet
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    let filename: String
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        // Create a temporary file with the suggested filename
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+
+        if let pdfData = items.first as? Data {
+            try? pdfData.write(to: tempURL)
+            let activityVC = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+            return activityVC
+        }
+
+        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        return activityVC
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+        // No update needed
     }
 }
 
