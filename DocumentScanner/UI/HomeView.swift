@@ -7,9 +7,11 @@ final class HomeViewModel: ObservableObject {
     @Published var showScanner = false
     @Published var showPermissionAlert = false
     @Published var showDocumentPicker = false
+    @Published var showEditFilename = false
     @Published var currentDocument: Document?
     @Published var currentPDFData: Data?
     @Published var suggestedFilename: String = ""
+    @Published var editedFilename: String = ""
 
     private let ocrService = OCRService()
     private let pdfService = PDFService()
@@ -79,8 +81,9 @@ final class HomeViewModel: ObservableObject {
             )
             currentPDFData = pdfData
 
-            // Step 3: Generate filename
-            suggestedFilename = await pdfService.generateDateBasedFilename()
+            // Step 3: Generate smart filename from OCR text
+            let combinedText = updatedDocument.fullText
+            suggestedFilename = await pdfService.generateSmartFilename(from: combinedText)
 
             // Update state to completed
             state = .completed(updatedDocument)
@@ -90,8 +93,29 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    func saveDocument() {
+    func saveDocument(editFilename: Bool) {
         guard currentPDFData != nil else { return }
+
+        if editFilename {
+            // Initialize edit field with suggested name (without .pdf)
+            editedFilename = suggestedFilename.replacingOccurrences(of: ".pdf", with: "")
+            showEditFilename = true
+        } else {
+            // Use suggested filename directly
+            showDocumentPicker = true
+        }
+    }
+
+    func confirmEditedFilename() {
+        // Add .pdf extension if not present
+        var finalFilename = editedFilename.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !finalFilename.isEmpty {
+            if !finalFilename.hasSuffix(".pdf") {
+                finalFilename += ".pdf"
+            }
+            suggestedFilename = finalFilename
+        }
+        showEditFilename = false
         showDocumentPicker = true
     }
 
@@ -135,22 +159,26 @@ struct HomeView: View {
                     .padding(.horizontal)
                 
                 Spacer()
-                
-                // Scan Button
-                Button {
-                    viewModel.startScanning()
-                } label: {
-                    Label("Scan Document", systemImage: "camera.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundStyle(.white)
-                        .cornerRadius(12)
+
+                // Scan Button (hidden when document is ready)
+                if case .completed = viewModel.state {
+                    // Don't show scan button when document is ready
+                } else {
+                    Button {
+                        viewModel.startScanning()
+                    } label: {
+                        Label("Scan Document", systemImage: "camera.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundStyle(.white)
+                            .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                    .disabled(viewModel.state == .scanning)
                 }
-                .padding(.horizontal)
-                .disabled(viewModel.state == .scanning)
-                
+
                 // Status messages and actions
                 if case .processing = viewModel.state {
                     VStack(spacing: 12) {
@@ -184,29 +212,63 @@ struct HomeView: View {
                         Text("PDF Ready!")
                             .font(.headline)
 
-                        Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s") • Searchable text")
+                        Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
-                        // Save button
-                        Button {
-                            viewModel.saveDocument()
-                        } label: {
-                            Label("Save to Files", systemImage: "square.and.arrow.down")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.green)
-                                .foregroundStyle(.white)
-                                .cornerRadius(12)
+                        // Suggested filename display
+                        Text(viewModel.suggestedFilename)
+                            .font(.subheadline)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.secondary.opacity(0.1))
+                            .cornerRadius(8)
+                            .padding(.horizontal)
+
+                        // Action buttons (stacked vertically)
+                        VStack(spacing: 12) {
+                            // Edit Name button (primary action)
+                            Button {
+                                viewModel.showEditFilename = true
+                            } label: {
+                                Label("Edit Name", systemImage: "pencil")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.blue)
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(12)
+                            }
+
+                            // Save button (secondary action)
+                            Button {
+                                viewModel.saveDocument(editFilename: false)
+                            } label: {
+                                Label("Save to Files", systemImage: "square.and.arrow.down")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.green)
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(12)
+                            }
+
+                            // Scan Another Document button
+                            Button {
+                                viewModel.resetSession()
+                                viewModel.startScanning()
+                            } label: {
+                                Label("Scan Another Document", systemImage: "camera.fill")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.blue)
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(12)
+                            }
                         }
                         .padding(.horizontal)
-
-                        Button("Scan Another Document") {
-                            viewModel.resetSession()
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(.blue)
                     }
                     .padding()
                 }
@@ -258,6 +320,18 @@ struct HomeView: View {
                 }
             } message: {
                 Text("Camera access is required to scan documents. Please enable it in Settings.")
+            }
+            .alert("Edit Filename", isPresented: $viewModel.showEditFilename) {
+                TextField("Document name", text: $viewModel.editedFilename)
+                    .textInputAutocapitalization(.words)
+                Button("Cancel", role: .cancel) {
+                    viewModel.showEditFilename = false
+                }
+                Button("Save") {
+                    viewModel.confirmEditedFilename()
+                }
+            } message: {
+                Text("Enter a name for your document")
             }
         }
     }

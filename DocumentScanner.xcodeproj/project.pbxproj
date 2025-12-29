@@ -8,33 +8,35 @@
 
 /* Begin PBXBuildFile section */
 		1D1E1E1D2B1E1E1E1E1E1E1DBF /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1E1E1D2B1E1E1E1E1E1E1D /* App.swift */; };
-		1D1E1E1F2B1E1E1E1E1E1E1FBF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1E1E1F2B1E1E1E1E1E1E1F /* ContentView.swift */; };
 		2D2E2E2D2B2E2E2E2E2E2E2DBF /* Page.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2E2E2D2B2E2E2E2E2E2E2D /* Page.swift */; };
 		3D3E3E3D2B3E3E3E3E3E3E3DBF /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3E3E3D2B3E3E3E3E3E3E3D /* Document.swift */; };
 		4D4E4E4D2B4E4E4E4E4E4E4DBF /* ScanSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E4E4D2B4E4E4E4E4E4E4D /* ScanSession.swift */; };
+		1D1E1E1F2B1E1E1E1E1E1E1FBF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1E1E1F2B1E1E1E1E1E1E1F /* ContentView.swift */; };
 		5D5E5E5D2B5E5E5E5E5E5E5DBF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D5E5E5D2B5E5E5E5E5E5E5D /* HomeView.swift */; };
 		6D6E6E6D2B6E6E6E6E6E6E6DBF /* DocumentScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D6E6E6D2B6E6E6E6E6E6E6D /* DocumentScannerView.swift */; };
 		7D7E7E7D2B7E7E7E7E7E7E7DBF /* DocumentScannerCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7E7E7D2B7E7E7E7E7E7E7D /* DocumentScannerCoordinator.swift */; };
 		8D8E8E8D2B8E8E8E8E8E8E8DBF /* OCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D8E8E8D2B8E8E8E8E8E8E8D /* OCRService.swift */; };
 		9D9E9E9D2B9E9E9E9E9E9E9DBF /* PDFService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9E9E9D2B9E9E9E9E9E9E9D /* PDFService.swift */; };
 		ADAEBBEBADBEBEBEBEBEBEBDBF /* DocumentPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADAEBBEBADBEBEEBEBEBEBD /* DocumentPickerView.swift */; };
+		BDBEBBEBCDBEBEBEBEBEBEBDBF /* SmartFilenameService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDBEBBEBCDBEBEEBEBEBEBD /* SmartFilenameService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		1D1E1E1A2B1E1E1E1E1E1E1A /* DocumentScanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DocumentScanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1D1E1E1D2B1E1E1E1E1E1E1D /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
-		1D1E1E1F2B1E1E1E1E1E1E1F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		1D1E1E242B1E1E1E1E1E1E24 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1D1E1E252B1E1E1E1E1E1E25 /* DocumentScanner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DocumentScanner.entitlements; sourceTree = "<group>"; };
 		2D2E2E2D2B2E2E2E2E2E2E2D /* Page.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Page.swift; sourceTree = "<group>"; };
 		3D3E3E3D2B3E3E3E3E3E3E3D /* Document.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Document.swift; sourceTree = "<group>"; };
 		4D4E4E4D2B4E4E4E4E4E4E4D /* ScanSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanSession.swift; sourceTree = "<group>"; };
+		1D1E1E1F2B1E1E1E1E1E1E1F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		5D5E5E5D2B5E5E5E5E5E5E5D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		6D6E6E6D2B6E6E6E6E6E6E6D /* DocumentScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScannerView.swift; sourceTree = "<group>"; };
 		7D7E7E7D2B7E7E7E7E7E7E7D /* DocumentScannerCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScannerCoordinator.swift; sourceTree = "<group>"; };
 		8D8E8E8D2B8E8E8E8E8E8E8D /* OCRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRService.swift; sourceTree = "<group>"; };
 		9D9E9E9D2B9E9E9E9E9E9E9D /* PDFService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFService.swift; sourceTree = "<group>"; };
 		ADAEBBEBADBEBEEBEBEBEBD /* DocumentPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPickerView.swift; sourceTree = "<group>"; };
+		BDBEBBEBCDBEBEEBEBEBEBD /* SmartFilenameService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartFilenameService.swift; sourceTree = "<group>"; };
+		1D1E1E242B1E1E1E1E1E1E24 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1D1E1E252B1E1E1E1E1E1E25 /* DocumentScanner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DocumentScanner.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +106,7 @@
 			children = (
 				8D8E8E8D2B8E8E8E8E8E8E8D /* OCRService.swift */,
 				9D9E9E9D2B9E9E9E9E9E9E9D /* PDFService.swift */,
+				BDBEBBEBCDBEBEEBEBEBEBD /* SmartFilenameService.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -187,6 +190,7 @@
 				8D8E8E8D2B8E8E8E8E8E8E8DBF /* OCRService.swift in Sources */,
 				9D9E9E9D2B9E9E9E9E9E9E9DBF /* PDFService.swift in Sources */,
 				ADAEBBEBADBEBEBEBEBEBEBDBF /* DocumentPickerView.swift in Sources */,
+				BDBEBBEBCDBEBEBEBEBEBEBDBF /* SmartFilenameService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -399,3 +403,4 @@
 	};
 	rootObject = 1D1E1E122B1E1E1E1E1E1E12 /* Project object */;
 }
+

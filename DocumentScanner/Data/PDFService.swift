@@ -88,7 +88,16 @@ actor PDFService {
         return page
     }
     
-    /// Generates a date-based filename for the PDF
+    /// Generates a smart filename for the PDF based on OCR text
+    /// - Parameter ocrText: Combined OCR text from all pages
+    /// - Returns: Filename in format "YYYY-MM-DD [Smart Name].pdf"
+    func generateSmartFilename(from ocrText: String) async -> String {
+        let smartFilenameService = SmartFilenameService()
+        let baseName = await smartFilenameService.generateFilename(from: ocrText)
+        return "\(baseName).pdf"
+    }
+
+    /// Generates a fallback date-based filename for the PDF
     /// - Returns: Filename in format "YYYY-MM-DD Scan.pdf"
     func generateDateBasedFilename() -> String {
         let dateFormatter = DateFormatter()
