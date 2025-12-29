@@ -7,22 +7,15 @@ actor SmartFilenameService {
     /// - Parameter text: Combined OCR text from all pages
     /// - Returns: Suggested filename without extension
     func generateFilename(from text: String) async -> String {
-        // Debug: Print incoming text
-        print("📄 SmartFilenameService: OCR text length: \(text.count)")
-        print("📄 First 200 chars: \(String(text.prefix(200)))")
-
         // Clean and preprocess text
         let cleanedText = preprocessText(text)
-        print("📄 Cleaned text: \(cleanedText)")
 
         // Try to extract meaningful information
         if let smartName = extractSmartName(from: cleanedText) {
-            print("📄 Generated smart name: \(smartName)")
             return smartName
         }
 
         // Fallback to date-based name
-        print("📄 Falling back to date-based name")
         return generateDatePrefix()
     }
     
@@ -48,37 +41,28 @@ actor SmartFilenameService {
 
         // 1. Extract company/organization name first (most important)
         if let company = extractCompanyName(from: text) {
-            print("📄 Extracted company: \(company)")
             components.append(company)
-        } else {
-            print("📄 No company name extracted")
         }
 
         // 2. Detect document type
         let docType = detectDocumentType(from: text)
         if let docType = docType {
-            print("📄 Detected doc type: \(docType)")
             components.append(docType)
-        } else {
-            print("📄 No document type detected")
         }
 
         // 3. Extract invoice/reference number (for invoices, receipts)
         if let refNumber = extractReferenceNumber(from: text, docType: docType) {
-            print("📄 Extracted reference: \(refNumber)")
             components.append(refNumber)
         }
 
         // Build filename if we found meaningful info
         guard !components.isEmpty else {
-            print("📄 No components extracted")
             return nil
         }
 
         // Use document date if found, otherwise use today's date
         let datePrefix: String
         if let docDate = extractDocumentDate(from: text) {
-            print("📄 Found document date: \(docDate)")
             datePrefix = docDate
         } else {
             datePrefix = generateDatePrefix()
@@ -86,7 +70,6 @@ actor SmartFilenameService {
 
         let name = components.joined(separator: " ")
         let filename = "\(datePrefix) \(sanitizeFilename(name))"
-        print("📄 Final filename: \(filename)")
         return filename
     }
     
@@ -158,10 +141,9 @@ actor SmartFilenameService {
         // Sort by priority (highest first) and find first match
         let sortedTypes = documentTypes.sorted { $0.priority > $1.priority }
 
-        for (keywords, label, priority) in sortedTypes {
+        for (keywords, label, _) in sortedTypes {
             for keyword in keywords {
                 if lowercased.contains(keyword) {
-                    print("📄 Matched '\(keyword)' for \(label) (priority: \(priority))")
                     return label
                 }
             }
@@ -177,11 +159,6 @@ actor SmartFilenameService {
         let lines = text.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-
-        print("📄 First 8 lines for company extraction:")
-        for (index, line) in lines.prefix(8).enumerated() {
-            print("📄   Line \(index): \(line)")
-        }
 
         // Common company suffixes to look for
         let companySuffixes = [
@@ -205,7 +182,6 @@ actor SmartFilenameService {
                     if let range = line.range(of: suffix) {
                         let companyName = String(line[..<range.upperBound]).trimmingCharacters(in: .whitespaces)
                         if companyName.count >= 3 && companyName.count <= 50 {
-                            print("📄 Found company with suffix '\(suffix)': \(companyName)")
                             return companyName
                         }
                     }
@@ -225,7 +201,6 @@ actor SmartFilenameService {
                     // Skip if it looks like a country/postal code
                     let commonNonCompanyWords = ["PRIORITY", "POST", "SUISSE", "SWITZERLAND", "FRANCE", "GERMANY"]
                     if !commonNonCompanyWords.contains(where: { line.uppercased().contains($0) }) {
-                        print("📄 Found uppercase company: \(line) (ratio: \(uppercaseRatio))")
                         return line
                     }
                 }
@@ -235,7 +210,6 @@ actor SmartFilenameService {
                     // Check if it's not a common generic word
                     let genericWords = ["INVOICE", "RECEIPT", "STATEMENT", "BILL", "FORM", "DOCUMENT"]
                     if !genericWords.contains(line.uppercased()) {
-                        print("📄 Found brand name: \(line)")
                         return line
                     }
                 }
@@ -255,7 +229,6 @@ actor SmartFilenameService {
                         // Skip address-like patterns
                         let hasNumbers = line.contains(where: { $0.isNumber })
                         if !hasNumbers {
-                            print("📄 Found title-case company: \(line)")
                             return line
                         }
                     }
@@ -263,7 +236,6 @@ actor SmartFilenameService {
             }
         }
 
-        print("📄 No company name found in first lines")
         return nil
     }
     
