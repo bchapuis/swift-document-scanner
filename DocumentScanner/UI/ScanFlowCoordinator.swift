@@ -7,16 +7,16 @@ final class HomeViewModel: ObservableObject {
     @Published var showScanner = false
     @Published var showPermissionAlert = false
     @Published var showDocumentPicker = false
-    @Published var showEditFilename = false
-    @Published var showPDFPreview = false
     @Published var showShareSheet = false
     @Published var currentDocument: Document?
     @Published var currentPDFData: Data?
     @Published var suggestedFilename: String = ""
     @Published var editedFilename: String = ""
+    @Published var savedDocumentId: UUID?  // Track the auto-saved document ID
 
     private let ocrService = OCRService()
     private let pdfService = PDFService()
+    private let documentRepository = DocumentRepository()
 
     func startScanning() {
         // Check if document scanning is available on this device
@@ -58,6 +58,7 @@ final class HomeViewModel: ObservableObject {
         currentDocument = nil
         currentPDFData = nil
         suggestedFilename = ""
+        savedDocumentId = nil
     }
 
     // MARK: - Document Processing
@@ -87,6 +88,19 @@ final class HomeViewModel: ObservableObject {
             let combinedText = updatedDocument.fullText
             suggestedFilename = await pdfService.generateSmartFilename(from: combinedText)
 
+            // Step 4: Auto-save PDF to documents directory
+            do {
+                let savedDoc = try await documentRepository.save(
+                    pdfData: pdfData,
+                    displayName: suggestedFilename,
+                    pageCount: updatedDocument.pageCount
+                )
+                savedDocumentId = savedDoc.id
+            } catch {
+                // Continue even if auto-save fails - user can still share/export
+                print("Auto-save failed: \(error)")
+            }
+
             // Update state to completed
             state = .completed(updatedDocument)
 
@@ -98,7 +112,6 @@ final class HomeViewModel: ObservableObject {
     func prepareEditFilename() {
         // Initialize edit field with suggested name (without .pdf)
         editedFilename = suggestedFilename.replacingOccurrences(of: ".pdf", with: "")
-        showEditFilename = true
     }
 
     func saveDocument() {
@@ -114,16 +127,32 @@ final class HomeViewModel: ObservableObject {
                 finalFilename += ".pdf"
             }
             suggestedFilename = finalFilename
-        }
-        showEditFilename = false
-    }
 
-    func showPreview() {
-        showPDFPreview = true
+            // Update the saved document's display name
+            if let docId = savedDocumentId {
+                Task {
+                    try? await documentRepository.updateDisplayName(id: docId, newDisplayName: finalFilename)
+                }
+            }
+        }
     }
 
     func updatePDFData(_ data: Data) {
         currentPDFData = data
+
+        // Update the saved document's PDF data
+        if let docId = savedDocumentId {
+            Task {
+                do {
+                    let allDocs = await documentRepository.fetchAll()
+                    if let savedDoc = allDocs.first(where: { $0.id == docId }) {
+                        try data.write(to: savedDoc.fileURL)
+                    }
+                } catch {
+                    print("Failed to update saved PDF: \(error)")
+                }
+            }
+        }
     }
 
     func shareDocument() {
@@ -164,18 +193,22 @@ struct ScanFlowCoordinator: View {
 
                 case .completed(let document):
                     // Step 3: Actions
-                    ActionsView(
-                        document: document,
-                        suggestedFilename: viewModel.suggestedFilename,
-                        onSave: viewModel.saveDocument,
-                        onEditPages: viewModel.showPreview,
-                        onEditName: viewModel.prepareEditFilename,
-                        onShare: viewModel.shareDocument,
-                        onScanAnother: {
-                            viewModel.resetSession()
-                            viewModel.startScanning()
-                        }
-                    )
+                    if let pdfData = viewModel.currentPDFData {
+                        ActionsView(
+                            document: document,
+                            suggestedFilename: viewModel.suggestedFilename,
+                            pdfData: pdfData,
+                            editedFilename: $viewModel.editedFilename,
+                            onSave: viewModel.saveDocument,
+                            onShare: viewModel.shareDocument,
+                            onBackToHome: {
+                                viewModel.resetSession()
+                            },
+                            onFilenameConfirm: viewModel.confirmEditedFilename,
+                            onPDFUpdate: viewModel.updatePDFData,
+                            onPrepareEditFilename: viewModel.prepareEditFilename
+                        )
+                    }
 
                 case .failed(let error):
                     // Error state
@@ -259,21 +292,6 @@ struct ScanFlowCoordinator: View {
                 }
             } message: {
                 Text("Camera access is required to scan documents. Please enable it in Settings.")
-            }
-            .sheet(isPresented: $viewModel.showEditFilename) {
-                FilenameEditorSheet(
-                    filename: $viewModel.editedFilename,
-                    onSave: {
-                        viewModel.confirmEditedFilename()
-                    }
-                )
-            }
-            .sheet(isPresented: $viewModel.showPDFPreview) {
-                if let pdfData = viewModel.currentPDFData {
-                    PDFEditorSheet(pdfData: pdfData) { updatedData in
-                        viewModel.updatePDFData(updatedData)
-                    }
-                }
             }
             .sheet(isPresented: $viewModel.showShareSheet) {
                 if let pdfData = viewModel.currentPDFData {

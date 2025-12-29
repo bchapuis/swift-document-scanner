@@ -1,11 +1,10 @@
 import SwiftUI
 import PDFKit
 
-/// Sheet view for previewing and editing the generated PDF
-struct PDFEditorSheet: View {
+/// View for previewing and editing the generated PDF (works both as sheet and navigation destination)
+struct PDFEditorView: View {
     let pdfData: Data
     let onUpdate: ((Data) -> Void)?
-    @Environment(\.dismiss) private var dismiss
 
     init(pdfData: Data, onUpdate: ((Data) -> Void)? = nil) {
         self.pdfData = pdfData
@@ -13,19 +12,10 @@ struct PDFEditorSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            PDFKitEditView(data: pdfData, onUpdate: onUpdate)
-                .ignoresSafeArea(edges: .bottom)
-                .navigationTitle("Edit Pages")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
-                            dismiss()
-                        }
-                    }
-                }
-        }
+        PDFKitEditView(data: pdfData, onUpdate: onUpdate)
+            .ignoresSafeArea(edges: .bottom)
+            .navigationTitle("Edit Pages")
+            .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -279,5 +269,5 @@ class PDFThumbnailCell: UICollectionViewCell {
         text.draw(at: CGPoint(x: 50, y: 50), withAttributes: attributes)
     }
 
-    return PDFEditorSheet(pdfData: data)
+    return PDFEditorView(pdfData: data)
 }

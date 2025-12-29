@@ -40,6 +40,18 @@ struct WelcomeView: View {
             .padding(.horizontal)
             .padding(.top, 16)
 
+            // View Past Scans Button
+            NavigationLink(destination: HistoryView()) {
+                Label("View Past Scans", systemImage: "clock.arrow.circlepath")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.secondary.opacity(0.1))
+                    .foregroundStyle(.blue)
+                    .cornerRadius(12)
+            }
+            .padding(.horizontal)
+
             Spacer()
         }
     }

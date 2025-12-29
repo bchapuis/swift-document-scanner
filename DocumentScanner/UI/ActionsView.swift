@@ -4,11 +4,14 @@ import SwiftUI
 struct ActionsView: View {
     let document: Document
     let suggestedFilename: String
+    let pdfData: Data
+    let editedFilename: Binding<String>
     let onSave: () -> Void
-    let onEditPages: () -> Void
-    let onEditName: () -> Void
     let onShare: () -> Void
-    let onScanAnother: () -> Void
+    let onBackToHome: () -> Void
+    let onFilenameConfirm: () -> Void
+    let onPDFUpdate: (Data) -> Void
+    let onPrepareEditFilename: () -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -49,10 +52,8 @@ struct ActionsView: View {
 
                 // Secondary actions in lighter style
                 VStack(spacing: 6) {
-                    // Edit Pages
-                    Button {
-                        onEditPages()
-                    } label: {
+                    // Edit Pages - NavigationLink
+                    NavigationLink(destination: PDFEditorView(pdfData: pdfData, onUpdate: onPDFUpdate)) {
                         Label("Edit Pages", systemImage: "doc.on.doc")
                             .font(.subheadline)
                             .frame(maxWidth: .infinity)
@@ -63,10 +64,8 @@ struct ActionsView: View {
                             .cornerRadius(10)
                     }
 
-                    // Edit Name
-                    Button {
-                        onEditName()
-                    } label: {
+                    // Edit Name - NavigationLink
+                    NavigationLink(destination: FilenameEditorView(filename: editedFilename, onSave: onFilenameConfirm)) {
                         Label("Edit Name", systemImage: "character.cursor.ibeam")
                             .font(.subheadline)
                             .frame(maxWidth: .infinity)
@@ -76,12 +75,15 @@ struct ActionsView: View {
                             .foregroundStyle(.primary)
                             .cornerRadius(10)
                     }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        onPrepareEditFilename()
+                    })
 
                     // Share
                     Button {
                         onShare()
                     } label: {
-                        Label("Share", systemImage: "square.and.arrow.up")
+                        Label("Share Document", systemImage: "square.and.arrow.up")
                             .font(.subheadline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
@@ -92,11 +94,11 @@ struct ActionsView: View {
                     }
                 }
 
-                // Scan Another - Tertiary action
+                // Back to Home - Tertiary action
                 Button {
-                    onScanAnother()
+                    onBackToHome()
                 } label: {
-                    Text("Scan Another Document")
+                    Text("Back to Home")
                         .font(.subheadline)
                         .foregroundStyle(.blue)
                         .padding(.vertical, 8)
@@ -110,13 +112,18 @@ struct ActionsView: View {
 }
 
 #Preview {
+    @Previewable @State var editedFilename = "2025-12-29 Example Document"
+
     ActionsView(
         document: Document(pages: [Page(image: UIImage())]),
         suggestedFilename: "2025-12-29 Example Document.pdf",
+        pdfData: Data(),
+        editedFilename: $editedFilename,
         onSave: {},
-        onEditPages: {},
-        onEditName: {},
         onShare: {},
-        onScanAnother: {}
+        onBackToHome: {},
+        onFilenameConfirm: {},
+        onPDFUpdate: { _ in },
+        onPrepareEditFilename: {}
     )
 }
