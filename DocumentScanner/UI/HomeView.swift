@@ -8,6 +8,7 @@ final class HomeViewModel: ObservableObject {
     @Published var showPermissionAlert = false
     @Published var showDocumentPicker = false
     @Published var showEditFilename = false
+    @Published var showPDFPreview = false
     @Published var currentDocument: Document?
     @Published var currentPDFData: Data?
     @Published var suggestedFilename: String = ""
@@ -93,13 +94,17 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
+    func prepareEditFilename() {
+        // Initialize edit field with suggested name (without .pdf)
+        editedFilename = suggestedFilename.replacingOccurrences(of: ".pdf", with: "")
+        showEditFilename = true
+    }
+
     func saveDocument(editFilename: Bool) {
         guard currentPDFData != nil else { return }
 
         if editFilename {
-            // Initialize edit field with suggested name (without .pdf)
-            editedFilename = suggestedFilename.replacingOccurrences(of: ".pdf", with: "")
-            showEditFilename = true
+            prepareEditFilename()
         } else {
             // Use suggested filename directly
             showDocumentPicker = true
@@ -116,7 +121,14 @@ final class HomeViewModel: ObservableObject {
             suggestedFilename = finalFilename
         }
         showEditFilename = false
-        showDocumentPicker = true
+    }
+
+    func showPreview() {
+        showPDFPreview = true
+    }
+
+    func updatePDFData(_ data: Data) {
+        currentPDFData = data
     }
 
     func handleSaveComplete(url: URL) {
@@ -228,9 +240,22 @@ struct HomeView: View {
 
                         // Action buttons (stacked vertically)
                         VStack(spacing: 12) {
+                            // Edit Pages button
+                            Button {
+                                viewModel.showPreview()
+                            } label: {
+                                Label("Edit Pages", systemImage: "doc.text.magnifyingglass")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.purple)
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(12)
+                            }
+
                             // Edit Name button (primary action)
                             Button {
-                                viewModel.showEditFilename = true
+                                viewModel.prepareEditFilename()
                             } label: {
                                 Label("Edit Name", systemImage: "pencil")
                                     .font(.headline)
@@ -321,17 +346,20 @@ struct HomeView: View {
             } message: {
                 Text("Camera access is required to scan documents. Please enable it in Settings.")
             }
-            .alert("Edit Filename", isPresented: $viewModel.showEditFilename) {
-                TextField("Document name", text: $viewModel.editedFilename)
-                    .textInputAutocapitalization(.words)
-                Button("Cancel", role: .cancel) {
-                    viewModel.showEditFilename = false
+            .sheet(isPresented: $viewModel.showEditFilename) {
+                FilenameEditorView(
+                    filename: $viewModel.editedFilename,
+                    onSave: {
+                        viewModel.confirmEditedFilename()
+                    }
+                )
+            }
+            .sheet(isPresented: $viewModel.showPDFPreview) {
+                if let pdfData = viewModel.currentPDFData {
+                    PDFPreviewView(pdfData: pdfData) { updatedData in
+                        viewModel.updatePDFData(updatedData)
+                    }
                 }
-                Button("Save") {
-                    viewModel.confirmEditedFilename()
-                }
-            } message: {
-                Text("Enter a name for your document")
             }
         }
     }
