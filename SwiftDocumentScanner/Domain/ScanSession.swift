@@ -18,6 +18,20 @@ enum ScanSessionState: Sendable, Equatable {
             return false
         }
     }
+
+    var isCompleted: Bool {
+        if case .completed = self {
+            return true
+        }
+        return false
+    }
+
+    var isFailed: Bool {
+        if case .failed = self {
+            return true
+        }
+        return false
+    }
 }
 
 /// Errors that can occur during scanning

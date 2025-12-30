@@ -2,17 +2,18 @@ import SwiftUI
 import VisionKit
 
 @MainActor
-final class HomeViewModel: ObservableObject {
-    @Published var state: ScanSessionState = .idle
-    @Published var showScanner = false
-    @Published var showPermissionAlert = false
-    @Published var showDocumentPicker = false
-    @Published var showShareSheet = false
-    @Published var currentDocument: Document?
-    @Published var currentPDFData: Data?
-    @Published var suggestedFilename: String = ""
-    @Published var editedFilename: String = ""
-    @Published var savedDocumentId: UUID?  // Track the auto-saved document ID
+@Observable
+final class HomeViewModel {
+    var state: ScanSessionState = .idle
+    var showScanner = false
+    var showPermissionAlert = false
+    var showDocumentPicker = false
+    var showShareSheet = false
+    var currentDocument: Document?
+    var currentPDFData: Data?
+    var suggestedFilename: String = ""
+    var editedFilename: String = ""
+    var savedDocumentId: UUID?  // Track the auto-saved document ID
 
     private let ocrService = OCRService()
     private let pdfService = PDFService()
@@ -174,81 +175,100 @@ final class HomeViewModel: ObservableObject {
     }
 }
 
+enum ScanDestination: Hashable {
+    case processing
+    case actions(document: Document, pdfData: Data, suggestedFilename: String)
+
+    func hash(into hasher: inout Hasher) {
+        switch self {
+        case .processing:
+            hasher.combine("processing")
+        case .actions(let document, _, let filename):
+            hasher.combine("actions")
+            hasher.combine(document.id)
+            hasher.combine(filename)
+        }
+    }
+
+    static func == (lhs: ScanDestination, rhs: ScanDestination) -> Bool {
+        switch (lhs, rhs) {
+        case (.processing, .processing):
+            return true
+        case (.actions(let doc1, _, let name1), .actions(let doc2, _, let name2)):
+            return doc1.id == doc2.id && name1 == name2
+        default:
+            return false
+        }
+    }
+}
+
 struct ScanFlowCoordinator: View {
-    @StateObject private var viewModel = HomeViewModel()
+    @State private var viewModel = HomeViewModel()
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
-            Group {
-                switch viewModel.state {
-                case .idle, .scanning:
-                    // Step 1: Welcome
-                    WelcomeView(
-                        onScanTapped: viewModel.startScanning
-                    )
-
+        NavigationStack(path: $navigationPath) {
+            // Root: Welcome view
+            WelcomeView(
+                onScanTapped: viewModel.startScanning
+            )
+            .navigationDestination(for: ScanDestination.self) { destination in
+                switch destination {
                 case .processing:
-                    // Step 2: Processing
                     ProcessingView()
+                        .navigationBarBackButtonHidden(true)
 
-                case .completed(let document):
-                    // Step 3: Actions
-                    if let pdfData = viewModel.currentPDFData {
-                        ActionsView(
-                            document: document,
-                            suggestedFilename: viewModel.suggestedFilename,
-                            pdfData: pdfData,
-                            editedFilename: $viewModel.editedFilename,
-                            onSave: viewModel.saveDocument,
-                            onShare: viewModel.shareDocument,
-                            onBackToHome: {
-                                viewModel.resetSession()
-                            },
-                            onFilenameConfirm: viewModel.confirmEditedFilename,
-                            onPDFUpdate: viewModel.updatePDFData,
-                            onPrepareEditFilename: viewModel.prepareEditFilename
-                        )
-                    }
-
-                case .failed(let error):
-                    // Error state
-                    VStack(spacing: 24) {
-                        Spacer()
-
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 64))
-                            .foregroundStyle(.red)
-
-                        VStack(spacing: 8) {
-                            Text("Something Went Wrong")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-
-                            Text(error.localizedDescription)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.horizontal)
-
-                        Button {
-                            viewModel.resetSession()
-                        } label: {
-                            Text("Try Again")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.blue)
-                                .foregroundStyle(.white)
-                                .cornerRadius(12)
-                        }
-                        .padding(.horizontal)
-
-                        Spacer()
-                    }
+                case .actions(let document, let pdfData, let suggestedFilename):
+                    ScannedDocumentActionsView(
+                        document: document,
+                        suggestedFilename: suggestedFilename,
+                        pdfData: pdfData,
+                        editedFilename: $viewModel.editedFilename,
+                        onSave: viewModel.saveDocument,
+                        onShare: viewModel.shareDocument,
+                        onFilenameConfirm: viewModel.confirmEditedFilename,
+                        onPDFUpdate: viewModel.updatePDFData,
+                        onPrepareEditFilename: viewModel.prepareEditFilename
+                    )
                 }
             }
-            .navigationBarHidden(true)
+            .onChange(of: viewModel.state) { oldState, newState in
+                switch newState {
+                case .processing:
+                    navigationPath.append(ScanDestination.processing)
+
+                case .completed(let document):
+                    if let pdfData = viewModel.currentPDFData {
+                        // Replace processing with actions
+                        navigationPath.removeLast()
+                        navigationPath.append(ScanDestination.actions(
+                            document: document,
+                            pdfData: pdfData,
+                            suggestedFilename: viewModel.suggestedFilename
+                        ))
+                    }
+
+                case .idle:
+                    // Clear navigation when resetting
+                    navigationPath = NavigationPath()
+
+                case .failed:
+                    // Clear navigation on error
+                    navigationPath = NavigationPath()
+
+                default:
+                    break
+                }
+            }
+            .alert("Error", isPresented: .constant(viewModel.state.isFailed)) {
+                Button("Try Again") {
+                    viewModel.resetSession()
+                }
+            } message: {
+                if case .failed(let error) = viewModel.state {
+                    Text(error.localizedDescription)
+                }
+            }
             .sheet(isPresented: $viewModel.showScanner) {
                 CameraScannerView(
                     onComplete: { document in

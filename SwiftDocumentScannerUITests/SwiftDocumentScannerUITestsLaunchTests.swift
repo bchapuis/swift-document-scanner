@@ -1,13 +1,13 @@
 //
-//  DocumentScannerUITestsLaunchTests.swift
-//  DocumentScannerUITests
+//  SwiftDocumentScannerUITestsLaunchTests.swift
+//  SwiftDocumentScannerUITests
 //
 //  Created by Bertil Chapuis on 28.12.2025.
 //
 
 import XCTest
 
-final class DocumentScannerUITestsLaunchTests: XCTestCase {
+final class SwiftDocumentScannerUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

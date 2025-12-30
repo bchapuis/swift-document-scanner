@@ -12,11 +12,13 @@ struct WelcomeView: View {
             Image(systemName: "doc.text.viewfinder")
                 .font(.system(size: 64))
                 .foregroundStyle(.blue)
+                .accessibilityLabel("Document Scanner app icon")
 
             VStack(spacing: 8) {
                 Text("Document Scanner")
                     .font(.largeTitle)
                     .fontWeight(.bold)
+                    .accessibilityAddTraits(.isHeader)
 
                 Text("Scan documents and save as searchable PDFs")
                     .font(.body)
@@ -39,6 +41,8 @@ struct WelcomeView: View {
             }
             .padding(.horizontal)
             .padding(.top, 16)
+            .accessibilityLabel("Scan Document")
+            .accessibilityHint("Double tap to start scanning a new document with your camera")
 
             // View Past Scans Button
             NavigationLink(destination: HistoryView()) {
@@ -51,6 +55,8 @@ struct WelcomeView: View {
                     .cornerRadius(12)
             }
             .padding(.horizontal)
+            .accessibilityLabel("View Past Scans")
+            .accessibilityHint("Double tap to view your previously scanned documents")
 
             Spacer()
         }

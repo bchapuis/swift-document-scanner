@@ -16,12 +16,14 @@ struct FilenameEditorView: View {
             Image(systemName: "pencil.circle.fill")
                 .font(.system(size: 64))
                 .foregroundStyle(.blue)
+                .accessibilityLabel("Edit filename")
 
             VStack(spacing: 8) {
                 // Instructions
                 Text("Edit Filename")
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .accessibilityAddTraits(.isHeader)
 
                 // Text field
                 TextField("Document name", text: $filename)
@@ -34,11 +36,14 @@ struct FilenameEditorView: View {
                         saveAndDismiss()
                     }
                     .padding(.top, 4)
+                    .accessibilityLabel("Document name")
+                    .accessibilityHint("Enter a name for your document")
 
                 // Character count hint
                 Text("\(filename.count) characters")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, 32)
 
@@ -58,6 +63,8 @@ struct FilenameEditorView: View {
             }
             .padding(.horizontal)
             .disabled(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .accessibilityLabel("Done")
+            .accessibilityHint("Double tap to save filename")
         }
         .padding()
         .navigationTitle("Edit Filename")

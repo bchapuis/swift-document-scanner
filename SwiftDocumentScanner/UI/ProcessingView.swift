@@ -11,11 +11,14 @@ struct ProcessingView: View {
                 .font(.system(size: 64))
                 .foregroundStyle(.orange)
                 .symbolEffect(.pulse)
+                .accessibilityLabel("Processing document")
+                .accessibilityAddTraits(.updatesFrequently)
 
             VStack(spacing: 8) {
                 Text("Processing Document")
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .accessibilityAddTraits(.isHeader)
 
                 Text("Performing OCR and generating PDF")
                     .font(.body)
@@ -23,6 +26,7 @@ struct ProcessingView: View {
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal)
+            .accessibilityElement(children: .combine)
 
             Spacer()
         }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct DocumentScannerApp: App {
+struct SwiftDocumentScannerApp: App {
     var body: some Scene {
         WindowGroup {
             ScanFlowCoordinator()
