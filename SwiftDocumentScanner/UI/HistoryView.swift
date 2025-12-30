@@ -124,6 +124,9 @@ struct HistoryView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
+                    .transaction { transaction in
+                        transaction.animation = .easeInOut(duration: 0.2)
+                    }
                 }
             }
         }
