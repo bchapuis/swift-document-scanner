@@ -18,13 +18,14 @@ struct SavedDocument: Identifiable, Codable, Sendable, Hashable {
         self.pageCount = pageCount
     }
 
-    // Implement Hashable based on ID only (ignore mutable displayName)
+    // Implement Hashable based on ID for collection stability
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
 
+    // Include displayName in equality for SwiftUI updates
     static func == (lhs: SavedDocument, rhs: SavedDocument) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id && lhs.displayName == rhs.displayName
     }
 
     // Suppress automatic Codable synthesis for hash consistency

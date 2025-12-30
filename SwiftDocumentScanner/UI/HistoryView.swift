@@ -48,6 +48,10 @@ final class HistoryViewModel {
         }
     }
 
+    func refreshDocuments() async {
+        documents = await repository.fetchAll()
+    }
+
     func deleteDocument(_ document: SavedDocument) {
         Task {
             try? await repository.delete(id: document.id)
@@ -77,10 +81,10 @@ struct HistoryView: View {
             }
         }
         .navigationTitle("Past Scans")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(
             text: $viewModel.searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
+            placement: .toolbar,
             prompt: "Search documents"
         )
         .toolbar {
@@ -98,6 +102,9 @@ struct HistoryView: View {
         }
         .onAppear {
             viewModel.loadDocuments()
+        }
+        .refreshable {
+            await viewModel.refreshDocuments()
         }
     }
 
