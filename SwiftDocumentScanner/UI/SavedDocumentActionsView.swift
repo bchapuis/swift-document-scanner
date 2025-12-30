@@ -9,11 +9,21 @@ final class SavedDocumentActionsViewModel {
     var editedFilename: String = ""
     var document: SavedDocument
     var pdfData: Data = Data()
+    var fileSize: String?
 
     private let repository = DocumentRepository()
 
     init(document: SavedDocument) {
         self.document = document
+        self.fileSize = getFileSize()
+    }
+
+    private func getFileSize() -> String? {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: document.fileURL.path),
+              let size = attributes[.size] as? Int64 else {
+            return nil
+        }
+        return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }
 
     func loadPDFData() {
@@ -89,57 +99,63 @@ struct SavedDocumentActionsView: View {
     }
 
     var body: some View {
-        VStack(spacing: DesignSystem.Spacing.lg) {
-            Spacer()
-
-            // Header with document info
-            DocumentInfoHeader(
-                filename: viewModel.document.displayName,
-                pageCount: viewModel.document.pageCount
-            )
-
-            // Action buttons
-            VStack(spacing: DesignSystem.Spacing.buttonGroup) {
-                // Save to Files - Primary action
-                PrimaryActionButton(
-                    title: "Save to Files",
-                    icon: "folder.badge.plus",
-                    action: viewModel.saveToFiles
+        List {
+            // Header Section
+            Section {
+                DocumentInfoHeader(
+                    filename: viewModel.document.displayName,
+                    pageCount: viewModel.document.pageCount,
+                    createdAt: viewModel.document.createdAt,
+                    fileSize: viewModel.fileSize
                 )
-
-                // Secondary actions
-                VStack(spacing: DesignSystem.Spacing.secondaryButtons) {
-                    // Edit Name
-                    SecondaryActionButton(
-                        title: "Edit Name",
-                        icon: "character.cursor.ibeam",
-                        destination: FilenameEditorView(
-                            filename: $viewModel.editedFilename,
-                            onSave: viewModel.confirmEditedFilename
-                        ),
-                        onTap: viewModel.prepareEditFilename
-                    )
-
-                    // Edit Pages
-                    SecondaryActionButton(
-                        title: "Edit Pages",
-                        icon: "doc.on.doc",
-                        destination: PDFEditorView(pdfData: viewModel.pdfData, onUpdate: viewModel.updatePDFData),
-                        isDisabled: viewModel.pdfData.isEmpty
-                    )
-
-                    // Share
-                    SecondaryPlainButton(
-                        title: "Share Document",
-                        icon: "square.and.arrow.up",
-                        action: viewModel.shareDocument
-                    )
-                }
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: DesignSystem.Spacing.xl, leading: 0, bottom: DesignSystem.Spacing.xl, trailing: 0))
             }
-            .padding(.horizontal)
 
-            Spacer()
+            // Edit Section
+            Section {
+                // Edit Name
+                NavigationLink(destination:
+                    FilenameEditorView(filename: $viewModel.editedFilename, onSave: viewModel.confirmEditedFilename)
+                        .onAppear {
+                            viewModel.prepareEditFilename()
+                        }
+                ) {
+                    Label("Edit Name", systemImage: "character.cursor.ibeam")
+                }
+
+                // Edit Pages
+                NavigationLink(destination: PDFEditorView(pdfData: viewModel.pdfData, onUpdate: viewModel.updatePDFData)) {
+                    Label("Edit Pages", systemImage: "doc.on.doc")
+                }
+                .disabled(viewModel.pdfData.isEmpty)
+            } header: {
+                Text("Edit")
+            }
+
+            // Export Section
+            Section {
+                // Save to Files
+                Button {
+                    viewModel.saveToFiles()
+                } label: {
+                    Label("Save to Files", systemImage: "folder.badge.plus")
+                        .foregroundStyle(DesignSystem.Colors.primary)
+                }
+
+                // Share
+                Button {
+                    viewModel.shareDocument()
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+            } header: {
+                Text("Export")
+            }
         }
+        .listStyle(.insetGrouped)
+        .navigationTitle(viewModel.document.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.loadPDFData()

@@ -212,11 +212,32 @@ struct ScanFlowCoordinator: View {
             WelcomeView(
                 onScanTapped: viewModel.startScanning
             )
+            .overlay {
+                // Show loading overlay during processing
+                if viewModel.state == .processing {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .controlSize(.large)
+                                .tint(.white)
+
+                            Text("Processing...")
+                                .font(.subheadline)
+                                .foregroundStyle(.white)
+                        }
+                        .padding(24)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    }
+                }
+            }
             .navigationDestination(for: ScanDestination.self) { destination in
                 switch destination {
                 case .processing:
-                    ProcessingView()
-                        .navigationBarBackButtonHidden(true)
+                    // No longer used - replaced with overlay
+                    EmptyView()
 
                 case .actions(let document, let pdfData, let suggestedFilename):
                     ScannedDocumentActionsView(
@@ -235,12 +256,12 @@ struct ScanFlowCoordinator: View {
             .onChange(of: viewModel.state) { oldState, newState in
                 switch newState {
                 case .processing:
-                    navigationPath.append(ScanDestination.processing)
+                    // Processing now shown as overlay, no navigation needed
+                    break
 
                 case .completed(let document):
                     if let pdfData = viewModel.currentPDFData {
-                        // Replace processing with actions
-                        navigationPath.removeLast()
+                        // Navigate to actions screen
                         navigationPath.append(ScanDestination.actions(
                             document: document,
                             pdfData: pdfData,

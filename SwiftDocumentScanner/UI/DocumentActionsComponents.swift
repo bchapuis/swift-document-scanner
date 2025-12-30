@@ -6,26 +6,45 @@ import SwiftUI
 struct DocumentInfoHeader: View {
     let filename: String
     let pageCount: Int
+    let createdAt: Date?
+    let fileSize: String?
+
+    init(filename: String, pageCount: Int, createdAt: Date? = nil, fileSize: String? = nil) {
+        self.filename = filename
+        self.pageCount = pageCount
+        self.createdAt = createdAt
+        self.fileSize = fileSize
+    }
 
     var body: some View {
-        VStack(spacing: DesignSystem.Spacing.xl) {
+        VStack(spacing: DesignSystem.Spacing.lg) {
             // Success icon
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: DesignSystem.IconSize.header))
                 .foregroundStyle(DesignSystem.Colors.success)
-                .accessibilityLabel("Document ready")
+                .symbolRenderingMode(.hierarchical)
 
             // Document info
-            VStack(spacing: DesignSystem.Spacing.sm) {
+            VStack(spacing: DesignSystem.Spacing.xs) {
                 Text(filename)
                     .font(DesignSystem.Typography.screenTitle)
                     .multilineTextAlignment(.center)
-                    .accessibilityLabel("Document name: \(filename)")
+                    .lineLimit(2)
 
-                Text("\(pageCount) page\(pageCount == 1 ? "" : "s")")
-                    .font(DesignSystem.Typography.body)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("\(pageCount) page\(pageCount == 1 ? "" : "s")")
+                // Metadata line
+                HStack(spacing: 4) {
+                    if let createdAt = createdAt {
+                        Text(createdAt, format: .relative(presentation: .named))
+                        Text("•")
+                    }
+                    Text("\(pageCount) page\(pageCount == 1 ? "" : "s")")
+                    if let fileSize = fileSize {
+                        Text("•")
+                        Text(fileSize)
+                    }
+                }
+                .font(DesignSystem.Typography.caption)
+                .foregroundStyle(.secondary)
             }
             .padding(.horizontal)
         }

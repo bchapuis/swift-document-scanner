@@ -1,5 +1,6 @@
 import PDFKit
 import UIKit
+import CoreText
 
 /// Service for generating PDF documents with embedded text layers
 actor PDFService {
@@ -55,26 +56,9 @@ actor PDFService {
         // Draw the image filling the entire page
         image.draw(in: pageRect)
 
-        // If we have OCR text, add it as invisible text layer for searchability
+        // If we have OCR text, embed it as selectable text layer
         if let text = text, !text.isEmpty {
-            // Save the graphics state
-            context.saveGState()
-
-            // Set text to invisible mode for searchability
-            context.setTextDrawingMode(.invisible)
-
-            // Draw the text in a small font at the top-left
-            // This makes the PDF searchable without affecting appearance
-            let textAttributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: 1.0),
-                .foregroundColor: UIColor.clear
-            ]
-
-            let textRect = CGRect(x: 0, y: 0, width: pageRect.width, height: pageRect.height)
-            (text as NSString).draw(in: textRect, withAttributes: textAttributes)
-
-            // Restore the graphics state
-            context.restoreGState()
+            drawSelectableText(text, in: context, pageRect: pageRect)
         }
 
         UIGraphicsEndPDFContext()
@@ -86,6 +70,47 @@ actor PDFService {
         }
 
         return page
+    }
+
+    /// Draws text in the PDF context in a way that makes it selectable but invisible
+    private func drawSelectableText(_ text: String, in context: CGContext, pageRect: CGRect) {
+        context.saveGState()
+
+        // Create attributed string with transparent text
+        let fontSize: CGFloat = 12.0
+        let font = UIFont.systemFont(ofSize: fontSize)
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: UIColor.clear // Invisible but selectable
+        ]
+
+        let attributedString = NSAttributedString(string: text, attributes: attributes)
+
+        // Create a text frame using Core Text
+        let frameSetter = CTFramesetterCreateWithAttributedString(attributedString as CFAttributedString)
+
+        // Create a path for the text frame (covering the entire page with margins)
+        let textRect = CGRect(
+            x: 20,
+            y: 20,
+            width: pageRect.width - 40,
+            height: pageRect.height - 40
+        )
+        let path = CGPath(rect: textRect, transform: nil)
+
+        // Create the frame
+        let frame = CTFramesetterCreateFrame(frameSetter, CFRangeMake(0, attributedString.length), path, nil)
+
+        // Flip the coordinate system for Core Text (iOS uses different coordinate system)
+        context.textMatrix = .identity
+        context.translateBy(x: 0, y: pageRect.height)
+        context.scaleBy(x: 1.0, y: -1.0)
+
+        // Draw the text frame
+        CTFrameDraw(frame, context)
+
+        context.restoreGState()
     }
     
     /// Generates a smart filename for the PDF based on OCR text

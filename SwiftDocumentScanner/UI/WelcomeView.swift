@@ -3,62 +3,82 @@ import SwiftUI
 /// Step 1: Welcome screen with scan button
 struct WelcomeView: View {
     let onScanTapped: () -> Void
+    @State private var navigateToHistory = false
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        List {
+            Section {
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: 60)
 
-            // App Icon/Logo
-            Image(systemName: "doc.text.viewfinder")
-                .font(.system(size: 64))
-                .foregroundStyle(.blue)
-                .accessibilityLabel("Document Scanner app icon")
+                    // App Icon
+                    Image(systemName: "doc.text.viewfinder")
+                        .font(.system(size: 80, weight: .thin))
+                        .foregroundStyle(DesignSystem.Colors.primary)
+                        .symbolRenderingMode(.hierarchical)
 
-            VStack(spacing: 8) {
-                Text("Document Scanner")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .accessibilityAddTraits(.isHeader)
+                    Spacer()
+                        .frame(height: 32)
 
-                Text("Scan documents and save as searchable PDFs")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                    // Title
+                    Text("Document Scanner")
+                        .font(.system(size: 34, weight: .bold, design: .default))
+                        .tracking(-0.5)
+
+                    Spacer()
+                        .frame(height: 12)
+
+                    // Subtitle
+                    Text("Scan documents and save as\nsearchable PDFs")
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer()
+                        .frame(height: 48)
+
+                    // Primary Action
+                    Button {
+                        onScanTapped()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "camera.fill")
+                            Text("Scan Document")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+
+                    Spacer()
+                        .frame(height: 12)
+
+                    // Secondary Action
+                    Button {
+                        navigateToHistory = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock")
+                            Text("View Past Scans")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
             }
-            .padding(.horizontal)
-
-            // Scan Button
-            Button {
-                onScanTapped()
-            } label: {
-                Label("Scan Document", systemImage: "camera.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundStyle(.white)
-                    .cornerRadius(12)
-            }
-            .padding(.horizontal)
-            .padding(.top, 16)
-            .accessibilityLabel("Scan Document")
-            .accessibilityHint("Double tap to start scanning a new document with your camera")
-
-            // View Past Scans Button
-            NavigationLink(destination: HistoryView()) {
-                Label("View Past Scans", systemImage: "clock.arrow.circlepath")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.secondary.opacity(0.1))
-                    .foregroundStyle(.blue)
-                    .cornerRadius(12)
-            }
-            .padding(.horizontal)
-            .accessibilityLabel("View Past Scans")
-            .accessibilityHint("Double tap to view your previously scanned documents")
-
-            Spacer()
+        }
+        .listStyle(.insetGrouped)
+        .navigationDestination(isPresented: $navigateToHistory) {
+            HistoryView()
         }
     }
 }

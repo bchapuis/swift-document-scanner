@@ -9,68 +9,45 @@ struct FilenameEditorView: View {
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            // Icon
-            Image(systemName: "pencil.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.blue)
-                .accessibilityLabel("Edit filename")
-
-            VStack(spacing: 8) {
-                // Instructions
-                Text("Edit Filename")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .accessibilityAddTraits(.isHeader)
-
-                // Text field
-                TextField("Document name", text: $filename)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.body)
-                    .multilineTextAlignment(.center)
+        Form {
+            Section {
+                TextField("Document name", text: $filename, axis: .vertical)
                     .focused($isTextFieldFocused)
+                    .lineLimit(2...4)
                     .submitLabel(.done)
                     .onSubmit {
                         saveAndDismiss()
                     }
-                    .padding(.top, 4)
-                    .accessibilityLabel("Document name")
-                    .accessibilityHint("Enter a name for your document")
-
-                // Character count hint
-                Text("\(filename.count) characters")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
+            } header: {
+                Text("Document Name")
+            } footer: {
+                if !filename.isEmpty {
+                    Text("\(filename.count) characters")
+                }
             }
-            .padding(.horizontal, 32)
-
-            Spacer()
-
-            // Done button
-            Button {
-                saveAndDismiss()
-            } label: {
-                Text("Done")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundStyle(.white)
-                    .cornerRadius(12)
-            }
-            .padding(.horizontal)
-            .disabled(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .accessibilityLabel("Done")
-            .accessibilityHint("Double tap to save filename")
         }
-        .padding()
-        .navigationTitle("Edit Filename")
+        .navigationTitle("Edit Name")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            // Auto-focus text field when view appears
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    saveAndDismiss()
+                }
+                .disabled(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            ToolbarItem(placement: .keyboard) {
+                HStack {
+                    Spacer()
+                    Button("Done") {
+                        isTextFieldFocused = false
+                    }
+                }
+            }
+        }
+        .task {
+            // Small delay to ensure binding is updated before focusing
+            try? await Task.sleep(for: .milliseconds(100))
             isTextFieldFocused = true
         }
     }

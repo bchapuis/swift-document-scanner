@@ -1,11 +1,46 @@
 import SwiftUI
+import PDFKit
+
+enum SortOption: String, CaseIterable {
+    case dateNewest = "Date (Newest First)"
+    case dateOldest = "Date (Oldest First)"
+    case nameAZ = "Name (A-Z)"
+    case nameZA = "Name (Z-A)"
+}
 
 @MainActor
 @Observable
 final class HistoryViewModel {
     var documents: [SavedDocument] = []
+    var searchText = ""
+    var sortOption: SortOption = .dateNewest
 
     private let repository = DocumentRepository()
+
+    var filteredAndSortedDocuments: [SavedDocument] {
+        var result = documents
+
+        // Filter by search text
+        if !searchText.isEmpty {
+            result = result.filter { document in
+                document.displayName.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+
+        // Sort based on option
+        switch sortOption {
+        case .dateNewest:
+            result.sort { $0.createdAt > $1.createdAt }
+        case .dateOldest:
+            result.sort { $0.createdAt < $1.createdAt }
+        case .nameAZ:
+            result.sort { $0.displayName.localizedCompare($1.displayName) == .orderedAscending }
+        case .nameZA:
+            result.sort { $0.displayName.localizedCompare($1.displayName) == .orderedDescending }
+        }
+
+        return result
+    }
 
     func loadDocuments() {
         Task {
@@ -19,110 +54,187 @@ final class HistoryViewModel {
             documents = await repository.fetchAll()
         }
     }
+
+    func getFileSize(for document: SavedDocument) -> String? {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: document.fileURL.path),
+              let fileSize = attributes[.size] as? Int64 else {
+            return nil
+        }
+
+        return ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
+    }
 }
 
 struct HistoryView: View {
     @State private var viewModel = HistoryViewModel()
 
     var body: some View {
-        List {
-            if viewModel.documents.isEmpty {
-                emptyStateRow
+        Group {
+            if viewModel.documents.isEmpty && viewModel.searchText.isEmpty {
+                emptyState
             } else {
-                ForEach(Array(viewModel.documents.enumerated()), id: \.element.id) { index, document in
-                    VStack(spacing: 0) {
-                        NavigationLink(destination: SavedDocumentActionsView(document: document)) {
-                            DocumentRow(document: document)
-                        }
-                        .padding(.trailing, DesignSystem.Spacing.sm)
-
-                        // Show divider for all items except the last one
-                        if index < viewModel.documents.count - 1 {
-                            Divider()
-                                .accessibilityHidden(true)
+                documentList
+            }
+        }
+        .navigationTitle("Past Scans")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(
+            text: $viewModel.searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search documents"
+        )
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Picker("Sort By", selection: $viewModel.sortOption) {
+                        ForEach(SortOption.allCases, id: \.self) { option in
+                            Text(option.rawValue).tag(option)
                         }
                     }
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
+                } label: {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
+                }
+            }
+        }
+        .onAppear {
+            viewModel.loadDocuments()
+        }
+    }
+
+    private var documentList: some View {
+        List {
+            if viewModel.filteredAndSortedDocuments.isEmpty {
+                ContentUnavailableView.search
+            } else {
+                ForEach(viewModel.filteredAndSortedDocuments) { document in
+                    NavigationLink(destination: SavedDocumentActionsView(document: document)) {
+                        DocumentRow(document: document, fileSize: viewModel.getFileSize(for: document))
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             viewModel.deleteDocument(document)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
-                        .accessibilityLabel("Delete \(document.displayName)")
                     }
                 }
             }
         }
-        .listStyle(.plain)
-        .navigationTitle("Past Scans")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            viewModel.loadDocuments()
-        }
+        .listStyle(.insetGrouped)
     }
 
-    private var emptyStateRow: some View {
-        VStack(spacing: DesignSystem.Spacing.lg) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: DesignSystem.IconSize.header))
-                .foregroundStyle(.secondary)
-                .accessibilityLabel("No documents")
-
-            Text("No Scans Yet")
-                .font(DesignSystem.Typography.screenTitle)
-                .accessibilityAddTraits(.isHeader)
-
-            Text("Your scanned documents will appear here")
-                .font(DesignSystem.Typography.body)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("No scans yet. Your scanned documents will appear here")
+    private var emptyState: some View {
+        ContentUnavailableView(
+            "No Scans Yet",
+            systemImage: "doc.text.magnifyingglass",
+            description: Text("Scanned documents will appear here")
+        )
     }
 }
 
 struct DocumentRow: View {
     let document: SavedDocument
+    let fileSize: String?
+
+    @State private var thumbnail: UIImage?
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.md) {
-            Image(systemName: "doc.fill")
-                .font(.title2)
-                .foregroundStyle(DesignSystem.Colors.primary)
-                .frame(width: DesignSystem.IconSize.listItem)
-                .accessibilityHidden(true)
+        HStack(spacing: 12) {
+            // PDF Thumbnail
+            Group {
+                if let thumbnail = thumbnail {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.red.gradient)
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xxs) {
-                Text(document.displayName)
-                    .font(DesignSystem.Typography.body)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+                        Image(systemName: "doc.fill")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                    }
+                }
+            }
+            .frame(width: 44, height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            .accessibilityHidden(true)
 
-                HStack(spacing: DesignSystem.Spacing.sm) {
-                    Text(document.createdAt, style: .date)
+            // Document Info
+            VStack(alignment: .leading, spacing: 2) {
+                Text(document.displayName.replacingOccurrences(of: ".pdf", with: ""))
+                    .font(.body)
+                    .lineLimit(2)
+
+                HStack(spacing: 4) {
+                    Text(document.createdAt, format: .relative(presentation: .named))
                     Text("•")
                     Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")")
+                    if let fileSize = fileSize {
+                        Text("•")
+                        Text(fileSize)
+                    }
                 }
-                .font(DesignSystem.Typography.caption)
+                .font(.caption)
                 .foregroundStyle(.secondary)
             }
+
+            Spacer()
         }
-        .padding(.horizontal, DesignSystem.Spacing.lg)
-        .padding(.vertical, DesignSystem.Spacing.md)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(document.displayName), \(document.pageCount) page\(document.pageCount == 1 ? "" : "s"), scanned \(document.createdAt.formatted(date: .abbreviated, time: .omitted))")
-        .accessibilityHint("Double tap to view document actions")
+        .task {
+            loadThumbnail()
+        }
+    }
+
+    private func loadThumbnail() {
+        Task.detached(priority: .background) {
+            guard let pdfDocument = PDFDocument(url: document.fileURL),
+                  let page = pdfDocument.page(at: 0) else {
+                return
+            }
+
+            let pageRect = page.bounds(for: .mediaBox)
+            let scale: CGFloat = 132 / max(pageRect.width, pageRect.height) // 44pt * 3 for @3x
+            let thumbnailSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
+
+            let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
+            let thumbnailImage = renderer.image { context in
+                UIColor.white.set()
+                context.fill(CGRect(origin: .zero, size: thumbnailSize))
+
+                context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
+                context.cgContext.scaleBy(x: scale, y: -scale)
+
+                page.draw(with: .mediaBox, to: context.cgContext)
+            }
+
+            await MainActor.run {
+                thumbnail = thumbnailImage
+            }
+        }
     }
 }
 
-#Preview {
+#Preview("History View") {
     NavigationStack {
         HistoryView()
     }
+}
+
+#Preview("Document Row") {
+    List {
+        DocumentRow(
+            document: SavedDocument(
+                internalFilename: "20251229-120000.pdf",
+                displayName: "Example Document.pdf",
+                fileURL: URL(fileURLWithPath: "/tmp/example.pdf"),
+                createdAt: Date().addingTimeInterval(-3600),
+                pageCount: 3
+            ),
+            fileSize: "1.2 MB"
+        )
+    }
+    .listStyle(.insetGrouped)
 }
