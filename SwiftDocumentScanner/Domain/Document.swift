@@ -27,9 +27,18 @@ struct Document: Identifiable, Sendable {
         pages.append(page)
     }
     
-    /// Update OCR text for a specific page
+    /// Update OCR result for a specific page
+    mutating func updatePageOCR(at index: Int, result: OCRResult) {
+        guard pages.indices.contains(index) else { return }
+        pages[index].ocrResult = result
+    }
+
+    /// Update OCR text for a specific page (backwards compatibility)
     mutating func updatePageText(at index: Int, text: String) {
         guard pages.indices.contains(index) else { return }
-        pages[index].extractedText = text
+        // Create a simple OCR result with no bounding boxes
+        pages[index].ocrResult = OCRResult(recognizedTexts: [
+            RecognizedText(text: text, boundingBox: .zero, confidence: 1.0)
+        ])
     }
 }

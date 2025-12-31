@@ -69,19 +69,19 @@ final class HomeViewModel {
 
         do {
             // Step 1: Perform OCR on all pages
-            let ocrTexts = try await ocrService.recognizeText(from: document.pages)
+            let ocrResults = try await ocrService.recognizeText(from: document.pages)
 
-            // Update document with OCR text
+            // Update document with OCR results
             var updatedDocument = document
-            for (index, text) in ocrTexts.enumerated() {
-                updatedDocument.updatePageText(at: index, text: text)
+            for (index, result) in ocrResults.enumerated() {
+                updatedDocument.updatePageOCR(at: index, result: result)
             }
             currentDocument = updatedDocument
 
-            // Step 2: Generate PDF with embedded text
+            // Step 2: Generate PDF with positioned text layers
             let pdfData = try await pdfService.generatePDF(
                 from: updatedDocument.pages,
-                withOCRTexts: ocrTexts
+                withOCRResults: ocrResults
             )
             currentPDFData = pdfData
 

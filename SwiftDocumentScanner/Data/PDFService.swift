@@ -8,33 +8,33 @@ actor PDFService {
     /// Generates a PDF document from pages with embedded OCR text
     /// - Parameters:
     ///   - pages: Array of scanned pages
-    ///   - ocrTexts: Array of OCR text corresponding to each page
+    ///   - ocrResults: Array of OCR results corresponding to each page
     /// - Returns: PDF document data
     /// - Throws: PDF generation errors
-    func generatePDF(from pages: [Page], withOCRTexts ocrTexts: [String]) async throws -> Data {
+    func generatePDF(from pages: [Page], withOCRResults ocrResults: [OCRResult]) async throws -> Data {
         let pdfDocument = PDFDocument()
-        
+
         for (index, page) in pages.enumerated() {
-            guard let pdfPage = createPDFPage(from: page.image, withText: ocrTexts[safe: index]) else {
+            guard let pdfPage = createPDFPage(from: page.image, withOCRResult: ocrResults[safe: index]) else {
                 throw NSError(domain: "PDFService", code: 1, userInfo: [
                     NSLocalizedDescriptionKey: "Failed to create PDF page at index \(index)"
                 ])
             }
-            
+
             pdfDocument.insert(pdfPage, at: index)
         }
-        
+
         guard let pdfData = pdfDocument.dataRepresentation() else {
             throw NSError(domain: "PDFService", code: 2, userInfo: [
                 NSLocalizedDescriptionKey: "Failed to generate PDF data"
             ])
         }
-        
+
         return pdfData
     }
     
     /// Creates a PDF page from an image with embedded text layer
-    private func createPDFPage(from image: UIImage, withText text: String?) -> PDFPage? {
+    private func createPDFPage(from image: UIImage, withOCRResult ocrResult: OCRResult?) -> PDFPage? {
         // Use the image's actual pixel dimensions for the PDF page
         let imageScale = image.scale
         let pixelWidth = image.size.width * imageScale
@@ -56,9 +56,9 @@ actor PDFService {
         // Draw the image filling the entire page
         image.draw(in: pageRect)
 
-        // If we have OCR text, embed it as selectable text layer
-        if let text = text, !text.isEmpty {
-            drawSelectableText(text, in: context, pageRect: pageRect)
+        // If we have OCR results, embed positioned text as selectable layers
+        if let ocrResult = ocrResult, !ocrResult.recognizedTexts.isEmpty {
+            drawPositionedText(ocrResult.recognizedTexts, in: context, pageRect: pageRect)
         }
 
         UIGraphicsEndPDFContext()
@@ -72,43 +72,40 @@ actor PDFService {
         return page
     }
 
-    /// Draws text in the PDF context in a way that makes it selectable but invisible
-    private func drawSelectableText(_ text: String, in context: CGContext, pageRect: CGRect) {
+    /// Draws positioned text elements at their exact Vision-detected locations
+    /// - Parameters:
+    ///   - recognizedTexts: Array of recognized text with bounding boxes
+    ///   - context: PDF graphics context
+    ///   - pageRect: Page dimensions
+    private func drawPositionedText(_ recognizedTexts: [RecognizedText], in context: CGContext, pageRect: CGRect) {
         context.saveGState()
 
-        // Create attributed string with transparent text
-        let fontSize: CGFloat = 12.0
-        let font = UIFont.systemFont(ofSize: fontSize)
+        // Vision uses bottom-left origin with normalized coordinates (0-1)
+        // Need to flip Y coordinate for PDF drawing context
+        for recognizedText in recognizedTexts {
+            // Convert normalized bounding box to page coordinates
+            let bbox = recognizedText.boundingBox
+            let textRect = CGRect(
+                x: bbox.origin.x * pageRect.width,
+                y: pageRect.height - (bbox.origin.y + bbox.height) * pageRect.height, // Flip Y
+                width: bbox.width * pageRect.width,
+                height: bbox.height * pageRect.height
+            )
 
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: UIColor.clear // Invisible but selectable
-        ]
+            // Calculate font size to fit the bounding box height
+            let fontSize = textRect.height * 0.85
 
-        let attributedString = NSAttributedString(string: text, attributes: attributes)
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: fontSize),
+                .foregroundColor: UIColor.clear // Invisible but selectable
+            ]
 
-        // Create a text frame using Core Text
-        let frameSetter = CTFramesetterCreateWithAttributedString(attributedString as CFAttributedString)
+            let attributedString = NSAttributedString(string: recognizedText.text, attributes: attributes)
 
-        // Create a path for the text frame (covering the entire page with margins)
-        let textRect = CGRect(
-            x: 20,
-            y: 20,
-            width: pageRect.width - 40,
-            height: pageRect.height - 40
-        )
-        let path = CGPath(rect: textRect, transform: nil)
-
-        // Create the frame
-        let frame = CTFramesetterCreateFrame(frameSetter, CFRangeMake(0, attributedString.length), path, nil)
-
-        // Flip the coordinate system for Core Text (iOS uses different coordinate system)
-        context.textMatrix = .identity
-        context.translateBy(x: 0, y: pageRect.height)
-        context.scaleBy(x: 1.0, y: -1.0)
-
-        // Draw the text frame
-        CTFrameDraw(frame, context)
+            // Draw the text in its bounding box
+            // Note: We don't need to flip coordinates because both Vision and PDF use bottom-left origin
+            attributedString.draw(in: textRect)
+        }
 
         context.restoreGState()
     }
