@@ -1,4 +1,5 @@
 import SwiftUI
+import PDFKit
 
 /// Actions view for saved documents - allows editing and sharing of previously scanned documents
 @MainActor
@@ -6,10 +7,12 @@ import SwiftUI
 final class SavedDocumentActionsViewModel {
     var showDocumentPicker = false
     var showShareSheet = false
+    var showPreview = false
     var editedFilename: String = ""
     var document: SavedDocument
     var pdfData: Data = Data()
     var fileSize: String?
+    var thumbnail: UIImage?
 
     private let repository = DocumentRepository()
 
@@ -33,6 +36,35 @@ final class SavedDocumentActionsViewModel {
                 await MainActor.run {
                     self.pdfData = data
                 }
+            }
+        }
+    }
+
+    func loadThumbnail() {
+        let fileURL = document.fileURL
+        Task.detached(priority: .background) {
+            guard let pdfDocument = PDFDocument(url: fileURL),
+                  let page = pdfDocument.page(at: 0) else {
+                return
+            }
+
+            let pageRect = page.bounds(for: .mediaBox)
+            let scale: CGFloat = 396 / max(pageRect.width, pageRect.height) // 132pt * 3 for @3x
+            let thumbnailSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
+
+            let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
+            let thumbnailImage = renderer.image { context in
+                UIColor.white.set()
+                context.fill(CGRect(origin: .zero, size: thumbnailSize))
+
+                context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
+                context.cgContext.scaleBy(x: scale, y: -scale)
+
+                page.draw(with: .mediaBox, to: context.cgContext)
+            }
+
+            await MainActor.run {
+                self.thumbnail = thumbnailImage
             }
         }
     }
@@ -102,12 +134,49 @@ struct SavedDocumentActionsView: View {
         List {
             // Header Section
             Section {
-                DocumentInfoHeader(
-                    filename: viewModel.document.displayName,
-                    pageCount: viewModel.document.pageCount,
-                    createdAt: viewModel.document.createdAt,
-                    fileSize: viewModel.fileSize
-                )
+                VStack(spacing: DesignSystem.Spacing.md) {
+                    Button {
+                        viewModel.showPreview = true
+                    } label: {
+                        // PDF Thumbnail
+                        Group {
+                            if let thumbnail = viewModel.thumbnail {
+                                Image(uiImage: thumbnail)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                            } else {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.red.gradient)
+
+                                    Image(systemName: "doc.fill")
+                                        .font(.system(size: 48))
+                                        .foregroundStyle(.white)
+                                }
+                                .frame(height: 176)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 176)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.pdfData.isEmpty)
+
+                    // Metadata
+                    HStack(spacing: 4) {
+                        Text(viewModel.document.createdAt, format: .relative(presentation: .named))
+                        Text("•")
+                        Text("\(viewModel.document.pageCount) page\(viewModel.document.pageCount == 1 ? "" : "s")")
+                        if let fileSize = viewModel.fileSize {
+                            Text("•")
+                            Text(fileSize)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: DesignSystem.Spacing.xl, leading: 0, bottom: DesignSystem.Spacing.xl, trailing: 0))
@@ -159,6 +228,7 @@ struct SavedDocumentActionsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.loadPDFData()
+            viewModel.loadThumbnail()
         }
         .sheet(isPresented: $viewModel.showDocumentPicker) {
             FileSaveView(
@@ -172,6 +242,9 @@ struct SavedDocumentActionsView: View {
         }
         .sheet(isPresented: $viewModel.showShareSheet) {
             ShareSheet(items: [viewModel.document.fileURL], filename: viewModel.document.displayName)
+        }
+        .navigationDestination(isPresented: $viewModel.showPreview) {
+            PDFPreviewView(pdfURL: viewModel.document.fileURL)
         }
     }
 }

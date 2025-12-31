@@ -1,37 +1,21 @@
 import Foundation
+import NaturalLanguage
 
-/// Service for generating intelligent filenames from OCR text using advanced heuristics
+/// Service for generating intelligent filenames from OCR text using NLP and heuristics
 actor SmartFilenameService {
     
     /// Generates a smart filename from OCR text
     /// - Parameter text: Combined OCR text from all pages
     /// - Returns: Suggested filename without extension
     func generateFilename(from text: String) async -> String {
-        // Clean and preprocess text
-        let cleanedText = preprocessText(text)
-
-        // Try to extract meaningful information
-        if let smartName = extractSmartName(from: cleanedText) {
+        // Try to extract meaningful information from full text
+        // (each extraction method handles its own text windowing)
+        if let smartName = extractSmartName(from: text) {
             return smartName
         }
 
         // Fallback to date-based name
         return generateDatePrefix()
-    }
-    
-    // MARK: - Text Preprocessing
-    
-    private func preprocessText(_ text: String) -> String {
-        // Take first 500 characters for performance
-        let truncated = String(text.prefix(500))
-        
-        // Remove excessive whitespace and newlines
-        let cleaned = truncated
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-        
-        return cleaned
     }
     
     // MARK: - Smart Name Extraction
@@ -155,6 +139,48 @@ actor SmartFilenameService {
     // MARK: - Company Name Extraction
 
     private func extractCompanyName(from text: String) -> String? {
+        // Try NL-based extraction first
+        if let nlName = extractCompanyNameUsingNL(from: text) {
+            return nlName
+        }
+
+        // Fallback to heuristic-based extraction
+        return extractCompanyNameHeuristic(from: text)
+    }
+
+    private func extractCompanyNameUsingNL(from text: String) -> String? {
+        // Search first 5000 chars where headers/company names typically appear
+        let searchText = String(text.prefix(5000))
+
+        let tagger = NLTagger(tagSchemes: [.nameType])
+        tagger.string = searchText
+
+        var organizations: [(String, Int)] = []
+
+        tagger.enumerateTags(in: searchText.startIndex..<searchText.endIndex,
+                            unit: .word,
+                            scheme: .nameType) { tag, range in
+            if tag == .organizationName {
+                let org = String(searchText[range])
+                let position = searchText.distance(from: searchText.startIndex, to: range.lowerBound)
+                organizations.append((org, position))
+            }
+            return true
+        }
+
+        // Prioritize organizations found early in document (likely to be the issuer)
+        // But still check up to 2000 chars to catch documents with headers/logos
+        for (org, position) in organizations where position < 2000 {
+            let name = org.trimmingCharacters(in: .whitespaces)
+            if name.count >= 3 && name.count <= 50 {
+                return name
+            }
+        }
+
+        return nil
+    }
+
+    private func extractCompanyNameHeuristic(from text: String) -> String? {
         // Get first non-empty lines which often contain company/organization
         let lines = text.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -242,6 +268,68 @@ actor SmartFilenameService {
     // MARK: - Document Date Extraction
 
     private func extractDocumentDate(from text: String) -> String? {
+        // Try NL-based date extraction first (looks for contextual dates like "Invoice Date:", "Date:")
+        if let nlDate = extractDateUsingNL(from: text) {
+            return nlDate
+        }
+
+        // Fallback to regex-based extraction
+        return extractDateUsingRegex(from: text)
+    }
+
+    private func extractDateUsingNL(from text: String) -> String? {
+        // Search first 3000 chars where document metadata typically appears
+        let searchText = String(text.prefix(3000))
+
+        // Look for date-related labels first
+        let dateLabelPatterns = [
+            "invoice date:", "date:", "dated:", "issue date:", "document date:",
+            "date de facture:", "date:", "daté:", "date d'émission:",
+            "statement date:", "contract date:", "effective date:"
+        ]
+
+        let lowercased = searchText.lowercased()
+        var searchRange: Range<String.Index>?
+
+        // Find the most relevant section containing a date label
+        for pattern in dateLabelPatterns {
+            if let range = lowercased.range(of: pattern) {
+                // Search 150 chars after the label
+                let startIndex = range.upperBound
+                let endIndex = lowercased.index(startIndex, offsetBy: 150, limitedBy: lowercased.endIndex) ?? lowercased.endIndex
+                searchRange = startIndex..<endIndex
+                break
+            }
+        }
+
+        // If no label found, search the entire first 1500 chars
+        let finalSearchRange = searchRange ?? (searchText.startIndex..<(searchText.index(searchText.startIndex, offsetBy: min(1500, searchText.count))))
+        let searchSubstring = String(searchText[finalSearchRange])
+
+        // Use DataDetector to find dates
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue) else {
+            return nil
+        }
+
+        let matches = detector.matches(in: searchSubstring, options: [], range: NSRange(searchSubstring.startIndex..., in: searchSubstring))
+
+        // Return the first valid date found
+        if let match = matches.first, let date = match.date {
+            // Filter out dates in the distant past or future
+            let calendar = Calendar.current
+            let currentYear = calendar.component(.year, from: Date())
+            let dateYear = calendar.component(.year, from: date)
+
+            // Accept dates within +/- 5 years of current year
+            if abs(dateYear - currentYear) <= 5 {
+                return formatDate(date)
+            }
+        }
+
+        return nil
+    }
+
+    private func extractDateUsingRegex(from text: String) -> String? {
         // Common date patterns to look for
         let datePatterns = [
             // ISO format: 2025-08-28, 2025/08/28
