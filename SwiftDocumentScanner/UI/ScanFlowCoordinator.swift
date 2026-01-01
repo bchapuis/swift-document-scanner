@@ -183,13 +183,10 @@ final class HomeViewModel {
 }
 
 enum ScanDestination: Hashable {
-    case processing
     case actions(document: Document, pdfData: Data, suggestedFilename: String)
 
     func hash(into hasher: inout Hasher) {
         switch self {
-        case .processing:
-            hasher.combine("processing")
         case .actions(let document, _, let filename):
             hasher.combine("actions")
             hasher.combine(document.id)
@@ -199,12 +196,8 @@ enum ScanDestination: Hashable {
 
     static func == (lhs: ScanDestination, rhs: ScanDestination) -> Bool {
         switch (lhs, rhs) {
-        case (.processing, .processing):
-            return true
         case (.actions(let doc1, _, let name1), .actions(let doc2, _, let name2)):
             return doc1.id == doc2.id && name1 == name2
-        default:
-            return false
         }
     }
 }
@@ -254,10 +247,6 @@ private struct ScanFlowCoordinatorContent: View {
             }
             .navigationDestination(for: ScanDestination.self) { destination in
                 switch destination {
-                case .processing:
-                    // No longer used - replaced with overlay
-                    EmptyView()
-
                 case .actions(let document, let pdfData, let suggestedFilename):
                     ScannedDocumentActionsView(
                         document: document,
@@ -361,30 +350,6 @@ private struct ScanFlowCoordinatorContent: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Share Sheet
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    let filename: String
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        // Create a temporary file with the suggested filename
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-
-        if let pdfData = items.first as? Data {
-            try? pdfData.write(to: tempURL)
-            let activityVC = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
-            return activityVC
-        }
-
-        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
-        return activityVC
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
-        // No update needed
     }
 }
 

@@ -177,11 +177,11 @@ struct DocumentRow: View {
                 } else {
                     ZStack {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.red.gradient)
+                            .fill(Color.secondary.opacity(0.1))
 
                         Image(systemName: "doc.fill")
                             .font(.title3)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }

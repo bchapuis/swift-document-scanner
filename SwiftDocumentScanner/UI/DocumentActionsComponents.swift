@@ -118,3 +118,27 @@ struct SecondaryPlainButton: View {
         .accessibilityHint("Double tap to \(title.lowercased())")
     }
 }
+
+// MARK: - Share Sheet
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    let filename: String
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        // Create a temporary file with the suggested filename
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+
+        if let pdfData = items.first as? Data {
+            try? pdfData.write(to: tempURL)
+            let activityVC = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+            return activityVC
+        }
+
+        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        return activityVC
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+        // No update needed
+    }
+}

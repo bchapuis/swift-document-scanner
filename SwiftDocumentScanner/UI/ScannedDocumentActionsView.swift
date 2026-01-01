@@ -60,11 +60,11 @@ struct ScannedDocumentActionsView: View {
                             } else {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.red.gradient)
+                                        .fill(Color.secondary.opacity(0.1))
 
                                     Image(systemName: "doc.fill")
                                         .font(.system(size: 48))
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(.secondary)
                                 }
                                 .frame(height: 176)
                             }
