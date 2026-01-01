@@ -121,19 +121,6 @@ Heuristics provide instant results (< 100ms), predictable output, and good accur
 - [x] Update both in-memory document and saved metadata
 - [x] Changes reflected immediately in history view
 
-### Edit PDF Pages (NEW)
-**As a user, I want to preview the scanned PDF before exporting so that I can verify the quality.**
-
-**Acceptance Criteria:**
-- [x] "Edit Pages" button in scanned document actions
-- [x] Full-screen PDF preview with PDFView
-- [x] Zoom and pan controls
-- [x] Navigate between pages
-- [x] Changes to PDF reflected in shared/exported version
-- [ ] Page reordering (future enhancement)
-- [ ] Page deletion (future enhancement)
-- [ ] Page rotation (future enhancement)
-
 ## User Flow
 
 ```
@@ -153,7 +140,6 @@ Heuristics provide instant results (< 100ms), predictable output, and good accur
    ↓
 8. User options:
    ├─ "Edit Name" → Edit filename → Updates saved document
-   ├─ "Edit Pages" → PDF preview (zoom, pan, navigate)
    ├─ "Share Document" → UIActivityViewController (Mail, Messages, AirDrop)
    └─ "Save to Files" → UIDocumentPickerViewController → Export copy
    ↓
@@ -189,7 +175,6 @@ Alternative flows:
 - ❌ Annotations or signatures
 - ❌ Batch operations / multi-document scanning
 - ❌ Manual text correction / editing
-- ❌ Advanced PDF editing (page reordering, deletion, rotation) - Future enhancement
 - ❌ Core ML BERT model - **REPLACED** with heuristic-based smart naming
 
 ## Non-Functional Requirements
@@ -268,7 +253,7 @@ Alternative flows:
 - ✅ HistoryView with saved documents list
 - ✅ Swipe-to-delete functionality
 - ✅ Document actions (Open PDF, Share, Delete)
-- ✅ PDF preview with PDFEditorView
+- ✅ PDF preview with PDFPreviewView
 - ✅ Filename editing with FilenameEditorView
 - ✅ ScanFlowCoordinator for navigation
 

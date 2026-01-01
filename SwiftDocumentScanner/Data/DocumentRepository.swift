@@ -86,22 +86,6 @@ actor DocumentRepository {
         return documents.filter { fileManager.fileExists(atPath: $0.fileURL.path) }
     }
 
-    /// Regenerate thumbnail for a saved document
-    /// - Parameter id: The document ID
-    func regenerateThumbnail(id: UUID) async throws {
-        let descriptor = FetchDescriptor<SavedDocument>(
-            predicate: #Predicate { $0.id == id }
-        )
-
-        guard let document = try modelContext.fetch(descriptor).first else {
-            throw NSError(domain: "DocumentRepository", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "Document not found"
-            ])
-        }
-
-        try await thumbnailService.generateAndSaveThumbnail(for: document.fileURL, documentID: document.id)
-    }
-
     /// Load thumbnail for a saved document
     /// - Parameter id: The document ID
     /// - Returns: The cached thumbnail image, or nil if not found

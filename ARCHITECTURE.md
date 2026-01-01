@@ -108,9 +108,9 @@ Welcome → Camera Scanner → Processing → Actions
 
 #### ScannedDocumentActionsView
 - Primary: Save to Files (export to user location)
-- Secondary: Edit Name, Edit Pages, Share
+- Secondary: Edit Name, Share
 - Sheet-based filename editor
-- PDF preview/editing integration
+- PDF preview integration
 
 #### HistoryView
 - Lists all saved documents (newest first)
@@ -122,7 +122,7 @@ Welcome → Camera Scanner → Processing → Actions
 - **CameraScannerView**: UIViewControllerRepresentable wrapping VNDocumentCameraViewController
 - **FileSaveView**: UIDocumentPickerViewController for exporting PDFs
 - **FilenameEditorView**: Sheet-based filename editing
-- **PDFEditorView**: PDF preview with PDFView
+- **PDFPreviewView**: Read-only PDF preview with PDFView
 - **DesignSystem**: Centralized colors, typography, spacing, button styles
 
 ### 2. Domain Layer
@@ -381,7 +381,6 @@ UIGraphicsEndPDFContext()
 10. Navigate to ScannedDocumentActionsView
 11. User can:
     ├─ Edit Name → FilenameEditorView → Update repository
-    ├─ Edit Pages → PDFEditorView → Update PDF data
     ├─ Share → UIActivityViewController
     └─ Save to Files → UIDocumentPickerViewController
 12. Return to WelcomeView
@@ -395,7 +394,7 @@ UIGraphicsEndPDFContext()
 4. Display list of SavedDocuments
 5. User taps document → SavedDocumentActionsView
 6. User can:
-   ├─ Open PDF → PDFEditorView (read-only)
+   ├─ Open PDF → PDFPreviewView (read-only)
    ├─ Share → UIActivityViewController
    └─ Swipe to delete → DocumentRepository.delete()
 ```
@@ -559,12 +558,11 @@ return generateDatePrefix()  // "2025-12-29"
 ### Future Enhancements
 1. **Multi-language support**: Localization with .xcstrings
 2. **Dark mode**: Color variants in Assets.xcassets
-3. **Document editing**: Page reordering, deletion, rotation
-4. **Cloud sync**: iCloud Drive integration
-5. **Export formats**: JPEG, PNG, TIFF (in addition to PDF)
-6. **Batch operations**: Multi-document scanning
-7. **Advanced OCR**: Manual text correction, confidence scores
-8. **Smart categorization**: Auto-tag documents by type
+3. **Cloud sync**: iCloud Drive integration
+4. **Export formats**: JPEG, PNG, TIFF (in addition to PDF)
+5. **Batch operations**: Multi-document scanning
+6. **Advanced OCR**: Manual text correction, confidence scores
+7. **Smart categorization**: Auto-tag documents by type
 9. **Search**: Full-text search across saved documents
 10. **Widgets**: Quick scan from home screen
 

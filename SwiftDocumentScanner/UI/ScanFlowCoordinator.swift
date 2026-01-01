@@ -143,33 +143,13 @@ final class HomeViewModel {
         }
     }
 
-    func updatePDFData(_ data: Data) {
-        currentPDFData = data
-
-        // Update the saved document's PDF data
-        if let docId = savedDocumentId {
-            Task {
-                do {
-                    let allDocs = await documentRepository.fetchAll()
-                    if let savedDoc = allDocs.first(where: { $0.id == docId }) {
-                        try data.write(to: savedDoc.fileURL)
-                        // Regenerate thumbnail after PDF update
-                        try? await documentRepository.regenerateThumbnail(id: docId)
-                    }
-                } catch {
-                    print("Failed to update saved PDF: \(error)")
-                }
-            }
-        }
-    }
-
     func shareDocument() {
         showShareSheet = true
     }
 
     func handleSaveComplete(url: URL) {
         showDocumentPicker = false
-        resetSession()
+        // Don't reset session - stay in actions view so user can share/edit/preview
     }
 
     func handleSaveCancel() {
@@ -260,7 +240,6 @@ private struct ScanFlowCoordinatorContent: View {
                         onSave: viewModel.saveDocument,
                         onShare: viewModel.shareDocument,
                         onFilenameConfirm: viewModel.confirmEditedFilename,
-                        onPDFUpdate: viewModel.updatePDFData,
                         onPrepareEditFilename: viewModel.prepareEditFilename,
                         savedDocumentId: viewModel.savedDocumentId,
                         repository: viewModel.documentRepository

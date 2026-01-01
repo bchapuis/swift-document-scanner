@@ -9,6 +9,7 @@ final class SavedDocumentActionsViewModel {
     var showDocumentPicker = false
     var showShareSheet = false
     var showPreview = false
+    var showEditName = false
     var editedFilename: String = ""
     var document: SavedDocument
     var pdfData: Data = Data()
@@ -63,24 +64,6 @@ final class SavedDocumentActionsViewModel {
         editedFilename = document.displayName.replacingOccurrences(of: ".pdf", with: "")
     }
 
-    func updatePDFData(_ data: Data) {
-        pdfData = data
-        // Save the updated PDF back to disk and regenerate thumbnail
-        Task {
-            do {
-                try data.write(to: document.fileURL)
-                // Regenerate thumbnail after PDF update
-                try? await repository.regenerateThumbnail(id: document.id)
-                // Reload the updated thumbnail
-                let updatedThumbnail = await repository.loadThumbnail(id: document.id)
-                await MainActor.run {
-                    self.thumbnail = updatedThumbnail
-                }
-            } catch {
-                print("Failed to save updated PDF: \(error)")
-            }
-        }
-    }
 
     func confirmEditedFilename() {
         var finalFilename = editedFilename.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -142,36 +125,28 @@ private struct SavedDocumentActionsViewContent: View {
             // Header Section
             Section {
                 VStack(spacing: DesignSystem.Spacing.md) {
-                    Button {
-                        viewModel.showPreview = true
-                    } label: {
-                        // PDF Thumbnail
-                        Group {
-                            if let thumbnail = viewModel.thumbnail {
-                                Image(uiImage: thumbnail)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            } else {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.secondary.opacity(0.1))
+                    // PDF Thumbnail
+                    Group {
+                        if let thumbnail = viewModel.thumbnail {
+                            Image(uiImage: thumbnail)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        } else {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.secondary.opacity(0.1))
 
-                                    Image(systemName: "doc.fill")
-                                        .font(.system(size: 48))
-                                        .foregroundStyle(.secondary)
-                                }
-                                .frame(height: 176)
+                                Image(systemName: "doc.fill")
+                                    .font(.system(size: 48))
+                                    .foregroundStyle(.secondary)
                             }
+                            .frame(height: 176)
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 176)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(viewModel.pdfData.isEmpty)
-                    .accessibilityLabel("PDF preview")
-                    .accessibilityHint(viewModel.pdfData.isEmpty ? "Preview loading" : "Double tap to view full PDF preview")
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 176)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
 
                     // Metadata
                     HStack(spacing: 4) {
@@ -193,39 +168,33 @@ private struct SavedDocumentActionsViewContent: View {
                 .listRowInsets(EdgeInsets(top: DesignSystem.Spacing.xl, leading: 0, bottom: DesignSystem.Spacing.xl, trailing: 0))
             }
 
-            // Edit Section
+            // Actions Section
             Section {
+                // Preview
+                Button {
+                    viewModel.showPreview = true
+                } label: {
+                    Label("Preview", systemImage: "eye")
+                }
+                .disabled(viewModel.pdfData.isEmpty)
+                .accessibilityLabel("Preview")
+                .accessibilityHint(viewModel.pdfData.isEmpty ? "Preview loading" : "Double tap to view full PDF preview")
+
                 // Edit Name
-                NavigationLink(destination:
-                    FilenameEditorView(filename: $viewModel.editedFilename, onSave: viewModel.confirmEditedFilename)
-                        .onAppear {
-                            viewModel.prepareEditFilename()
-                        }
-                ) {
+                Button {
+                    viewModel.prepareEditFilename()
+                    viewModel.showEditName = true
+                } label: {
                     Label("Edit Name", systemImage: "character.cursor.ibeam")
                 }
                 .accessibilityLabel("Edit document name")
-                .accessibilityHint("Current name: \(viewModel.document.displayName.replacingOccurrences(of: ".pdf", with: ""))")
+                .accessibilityHint(String(format: NSLocalizedString("Current name: %@", comment: ""), viewModel.document.displayName.replacingOccurrences(of: ".pdf", with: "")))
 
-                // Edit Pages
-                NavigationLink(destination: PDFEditorView(pdfData: viewModel.pdfData, onUpdate: viewModel.updatePDFData)) {
-                    Label("Edit Pages", systemImage: "doc.on.doc")
-                }
-                .disabled(viewModel.pdfData.isEmpty)
-                .accessibilityLabel("Edit pages")
-                .accessibilityHint(viewModel.pdfData.isEmpty ? "Loading PDF data" : "Reorder or delete pages from the PDF")
-            } header: {
-                Text("Edit")
-            }
-
-            // Export Section
-            Section {
                 // Save to Files
                 Button {
                     viewModel.saveToFiles()
                 } label: {
                     Label("Save to Files", systemImage: "folder.badge.plus")
-                        .foregroundStyle(DesignSystem.Colors.primary)
                 }
                 .accessibilityLabel("Save to Files")
                 .accessibilityHint("Choose a location to save the PDF in the Files app")
@@ -239,7 +208,7 @@ private struct SavedDocumentActionsViewContent: View {
                 .accessibilityLabel("Share")
                 .accessibilityHint("Share the PDF via email, messages, or other apps")
             } header: {
-                Text("Export")
+                Text("Actions")
             }
         }
         .listStyle(.insetGrouped)
@@ -264,6 +233,9 @@ private struct SavedDocumentActionsViewContent: View {
         }
         .navigationDestination(isPresented: $viewModel.showPreview) {
             PDFPreviewView(pdfURL: viewModel.document.fileURL)
+        }
+        .navigationDestination(isPresented: $viewModel.showEditName) {
+            FilenameEditorView(filename: $viewModel.editedFilename, onSave: viewModel.confirmEditedFilename)
         }
     }
 }

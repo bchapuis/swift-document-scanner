@@ -10,15 +10,15 @@ struct ScannedDocumentActionsView: View {
     let onSave: () -> Void
     let onShare: () -> Void
     let onFilenameConfirm: () -> Void
-    let onPDFUpdate: (Data) -> Void
     let onPrepareEditFilename: () -> Void
     let savedDocumentId: UUID?
     let repository: DocumentRepository?
 
     @State private var thumbnail: UIImage?
     @State private var showPreview = false
+    @State private var showEditName = false
 
-    init(document: Document, suggestedFilename: String, pdfData: Data, editedFilename: Binding<String>, onSave: @escaping () -> Void, onShare: @escaping () -> Void, onFilenameConfirm: @escaping () -> Void, onPDFUpdate: @escaping (Data) -> Void, onPrepareEditFilename: @escaping () -> Void, savedDocumentId: UUID? = nil, repository: DocumentRepository? = nil) {
+    init(document: Document, suggestedFilename: String, pdfData: Data, editedFilename: Binding<String>, onSave: @escaping () -> Void, onShare: @escaping () -> Void, onFilenameConfirm: @escaping () -> Void, onPrepareEditFilename: @escaping () -> Void, savedDocumentId: UUID? = nil, repository: DocumentRepository? = nil) {
         self.document = document
         self.suggestedFilename = suggestedFilename
         self.pdfData = pdfData
@@ -26,7 +26,6 @@ struct ScannedDocumentActionsView: View {
         self.onSave = onSave
         self.onShare = onShare
         self.onFilenameConfirm = onFilenameConfirm
-        self.onPDFUpdate = onPDFUpdate
         self.onPrepareEditFilename = onPrepareEditFilename
         self.savedDocumentId = savedDocumentId
         self.repository = repository
@@ -48,35 +47,28 @@ struct ScannedDocumentActionsView: View {
             // Header Section
             Section {
                 VStack(spacing: DesignSystem.Spacing.md) {
-                    Button {
-                        showPreview = true
-                    } label: {
-                        // PDF Thumbnail
-                        Group {
-                            if let thumbnail = thumbnail {
-                                Image(uiImage: thumbnail)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            } else {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.secondary.opacity(0.1))
+                    // PDF Thumbnail
+                    Group {
+                        if let thumbnail = thumbnail {
+                            Image(uiImage: thumbnail)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        } else {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.secondary.opacity(0.1))
 
-                                    Image(systemName: "doc.fill")
-                                        .font(.system(size: 48))
-                                        .foregroundStyle(.secondary)
-                                }
-                                .frame(height: 176)
+                                Image(systemName: "doc.fill")
+                                    .font(.system(size: 48))
+                                    .foregroundStyle(.secondary)
                             }
+                            .frame(height: 176)
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 176)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("PDF preview")
-                    .accessibilityHint("Double tap to view full PDF preview")
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 176)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
 
                     // Metadata
                     HStack(spacing: 4) {
@@ -96,38 +88,32 @@ struct ScannedDocumentActionsView: View {
                 .listRowInsets(EdgeInsets(top: DesignSystem.Spacing.xl, leading: 0, bottom: DesignSystem.Spacing.xl, trailing: 0))
             }
 
-            // Edit Section
+            // Actions Section
             Section {
+                // Preview
+                Button {
+                    showPreview = true
+                } label: {
+                    Label("Preview", systemImage: "eye")
+                }
+                .accessibilityLabel("Preview")
+                .accessibilityHint("Double tap to view full PDF preview")
+
                 // Edit Name
-                NavigationLink(destination:
-                    FilenameEditorView(filename: editedFilename, onSave: onFilenameConfirm)
-                        .onAppear {
-                            onPrepareEditFilename()
-                        }
-                ) {
+                Button {
+                    onPrepareEditFilename()
+                    showEditName = true
+                } label: {
                     Label("Edit Name", systemImage: "character.cursor.ibeam")
                 }
                 .accessibilityLabel("Edit document name")
-                .accessibilityHint("Current name: \(suggestedFilename.replacingOccurrences(of: ".pdf", with: ""))")
+                .accessibilityHint(String(format: NSLocalizedString("Current name: %@", comment: ""), suggestedFilename.replacingOccurrences(of: ".pdf", with: "")))
 
-                // Edit Pages
-                NavigationLink(destination: PDFEditorView(pdfData: pdfData, onUpdate: onPDFUpdate)) {
-                    Label("Edit Pages", systemImage: "doc.on.doc")
-                }
-                .accessibilityLabel("Edit pages")
-                .accessibilityHint("Reorder or delete pages from the PDF")
-            } header: {
-                Text("Edit")
-            }
-
-            // Export Section
-            Section {
                 // Save to Files
                 Button {
                     onSave()
                 } label: {
                     Label("Save to Files", systemImage: "folder.badge.plus")
-                        .foregroundStyle(DesignSystem.Colors.primary)
                 }
                 .accessibilityLabel("Save to Files")
                 .accessibilityHint("Choose a location to save the PDF in the Files app")
@@ -141,7 +127,7 @@ struct ScannedDocumentActionsView: View {
                 .accessibilityLabel("Share")
                 .accessibilityHint("Share the PDF via email, messages, or other apps")
             } header: {
-                Text("Export")
+                Text("Actions")
             }
         }
         .listStyle(.insetGrouped)
@@ -152,6 +138,9 @@ struct ScannedDocumentActionsView: View {
         }
         .navigationDestination(isPresented: $showPreview) {
             PDFPreviewView(pdfURL: previewURL)
+        }
+        .navigationDestination(isPresented: $showEditName) {
+            FilenameEditorView(filename: editedFilename, onSave: onFilenameConfirm)
         }
     }
 
@@ -208,7 +197,6 @@ struct ScannedDocumentActionsView: View {
             onSave: {},
             onShare: {},
             onFilenameConfirm: {},
-            onPDFUpdate: { _ in },
             onPrepareEditFilename: {}
         )
     }
