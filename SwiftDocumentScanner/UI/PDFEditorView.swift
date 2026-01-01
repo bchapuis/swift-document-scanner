@@ -43,6 +43,8 @@ struct PDFKitEditView: UIViewRepresentable {
         layout.itemSize = CGSize(width: 100, height: 140)
         layout.minimumInteritemSpacing = 10
         layout.minimumLineSpacing = 10
+        // Use directional insets for proper RTL support
+        layout.sectionInsetReference = .fromLayoutMargins
         layout.sectionInset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
 
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)

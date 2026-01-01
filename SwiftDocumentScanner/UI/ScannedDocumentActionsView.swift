@@ -33,7 +33,7 @@ struct ScannedDocumentActionsView: View {
     }
 
     private var pdfFileSize: String {
-        ByteCountFormatter.string(fromByteCount: Int64(pdfData.count), countStyle: .file)
+        LocalizationHelper.formatFileSize(Int64(pdfData.count))
     }
 
     private var previewURL: URL {
@@ -80,16 +80,16 @@ struct ScannedDocumentActionsView: View {
 
                     // Metadata
                     HStack(spacing: 4) {
-                        Text(document.createdAt, format: .relative(presentation: .named))
+                        Text(LocalizationHelper.formatRelativeDate(document.createdAt))
                         Text("•")
-                        Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")")
+                        Text(LocalizationHelper.formatPageCount(document.pageCount))
                         Text("•")
                         Text(pdfFileSize)
                     }
                     .font(DesignSystem.Typography.caption)
                     .foregroundStyle(.secondary)
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Document details: \(document.pageCount) page\(document.pageCount == 1 ? "" : "s"), \(pdfFileSize), scanned \(document.createdAt.formatted(.relative(presentation: .named)))")
+                    .accessibilityLabel("Document details: \(LocalizationHelper.formatPageCount(document.pageCount)), \(pdfFileSize), scanned \(LocalizationHelper.formatRelativeDate(document.createdAt))")
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)

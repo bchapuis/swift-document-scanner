@@ -24,8 +24,8 @@ struct FilenameEditorView: View {
                 Text("Document Name")
             } footer: {
                 if !filename.isEmpty {
-                    Text("\(filename.count) characters")
-                        .accessibilityLabel("\(filename.count) characters")
+                    Text(LocalizationHelper.formatCharacterCount(filename.count))
+                        .accessibilityLabel(LocalizationHelper.formatCharacterCount(filename.count))
                 }
             }
         }

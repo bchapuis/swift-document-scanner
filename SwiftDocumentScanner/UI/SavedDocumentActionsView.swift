@@ -28,7 +28,7 @@ final class SavedDocumentActionsViewModel {
               let size = attributes[.size] as? Int64 else {
             return nil
         }
-        return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+        return LocalizationHelper.formatFileSize(size)
     }
 
     func loadPDFData() {
@@ -129,11 +129,11 @@ private struct SavedDocumentActionsViewContent: View {
     }
 
     private var metadataAccessibilityLabel: String {
-        var label = "Document details: \(viewModel.document.pageCount) page\(viewModel.document.pageCount == 1 ? "" : "s")"
+        var label = "Document details: \(LocalizationHelper.formatPageCount(viewModel.document.pageCount))"
         if let fileSize = viewModel.fileSize {
             label += ", \(fileSize)"
         }
-        label += ", scanned \(viewModel.document.createdAt.formatted(.relative(presentation: .named)))"
+        label += ", scanned \(LocalizationHelper.formatRelativeDate(viewModel.document.createdAt))"
         return label
     }
 
@@ -175,9 +175,9 @@ private struct SavedDocumentActionsViewContent: View {
 
                     // Metadata
                     HStack(spacing: 4) {
-                        Text(viewModel.document.createdAt, format: .relative(presentation: .named))
+                        Text(LocalizationHelper.formatRelativeDate(viewModel.document.createdAt))
                         Text("•")
-                        Text("\(viewModel.document.pageCount) page\(viewModel.document.pageCount == 1 ? "" : "s")")
+                        Text(LocalizationHelper.formatPageCount(viewModel.document.pageCount))
                         if let fileSize = viewModel.fileSize {
                             Text("•")
                             Text(fileSize)

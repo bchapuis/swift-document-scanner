@@ -70,7 +70,7 @@ final class HistoryViewModel {
             return nil
         }
 
-        return ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
+        return LocalizationHelper.formatFileSize(fileSize)
     }
 }
 
@@ -203,9 +203,9 @@ struct DocumentRow: View {
                     .lineLimit(2)
 
                 HStack(spacing: 4) {
-                    Text(document.createdAt, format: .relative(presentation: .named))
+                    Text(LocalizationHelper.formatRelativeDate(document.createdAt))
                     Text("•")
-                    Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")")
+                    Text(LocalizationHelper.formatPageCount(document.pageCount))
                     if let fileSize = fileSize {
                         Text("•")
                         Text(fileSize)
@@ -227,11 +227,11 @@ struct DocumentRow: View {
 
     private var accessibilityLabelText: String {
         var label = document.displayName.replacingOccurrences(of: ".pdf", with: "")
-        label += ", \(document.pageCount) page\(document.pageCount == 1 ? "" : "s")"
+        label += ", \(LocalizationHelper.formatPageCount(document.pageCount))"
         if let fileSize = fileSize {
             label += ", \(fileSize)"
         }
-        label += ", scanned \(document.createdAt.formatted(.relative(presentation: .named)))"
+        label += ", scanned \(LocalizationHelper.formatRelativeDate(document.createdAt))"
         return label
     }
 
