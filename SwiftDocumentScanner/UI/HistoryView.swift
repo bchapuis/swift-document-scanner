@@ -1,5 +1,6 @@
 import SwiftUI
 import PDFKit
+import SwiftData
 
 enum SortOption: String, CaseIterable {
     case dateNewest = "Date (Newest First)"
@@ -15,7 +16,11 @@ final class HistoryViewModel {
     var searchText = ""
     var sortOption: SortOption = .dateNewest
 
-    private let repository = DocumentRepository()
+    let repository: DocumentRepository
+
+    init(modelContext: ModelContext) {
+        self.repository = DocumentRepository(modelContext: modelContext)
+    }
 
     var filteredAndSortedDocuments: [SavedDocument] {
         var result = documents
@@ -70,7 +75,19 @@ final class HistoryViewModel {
 }
 
 struct HistoryView: View {
-    @State private var viewModel = HistoryViewModel()
+    @Environment(\.modelContext) private var modelContext
+
+    var body: some View {
+        HistoryViewContent(modelContext: modelContext)
+    }
+}
+
+private struct HistoryViewContent: View {
+    @State private var viewModel: HistoryViewModel
+
+    init(modelContext: ModelContext) {
+        _viewModel = State(wrappedValue: HistoryViewModel(modelContext: modelContext))
+    }
 
     var body: some View {
         Group {
@@ -115,7 +132,7 @@ struct HistoryView: View {
             } else {
                 ForEach(viewModel.filteredAndSortedDocuments) { document in
                     NavigationLink(destination: SavedDocumentActionsView(document: document)) {
-                        DocumentRow(document: document, fileSize: viewModel.getFileSize(for: document))
+                        DocumentRow(document: document, fileSize: viewModel.getFileSize(for: document), repository: viewModel.repository)
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
@@ -145,6 +162,7 @@ struct HistoryView: View {
 struct DocumentRow: View {
     let document: SavedDocument
     let fileSize: String?
+    let repository: DocumentRepository
 
     @State private var thumbnail: UIImage?
 
@@ -199,29 +217,10 @@ struct DocumentRow: View {
     }
 
     private func loadThumbnail() {
-        Task.detached(priority: .background) {
-            guard let pdfDocument = PDFDocument(url: document.fileURL),
-                  let page = pdfDocument.page(at: 0) else {
-                return
-            }
-
-            let pageRect = page.bounds(for: .mediaBox)
-            let scale: CGFloat = 132 / max(pageRect.width, pageRect.height) // 44pt * 3 for @3x
-            let thumbnailSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
-
-            let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
-            let thumbnailImage = renderer.image { context in
-                UIColor.white.set()
-                context.fill(CGRect(origin: .zero, size: thumbnailSize))
-
-                context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
-                context.cgContext.scaleBy(x: scale, y: -scale)
-
-                page.draw(with: .mediaBox, to: context.cgContext)
-            }
-
+        Task {
+            let loadedThumbnail = await repository.loadThumbnail(id: document.id)
             await MainActor.run {
-                thumbnail = thumbnailImage
+                thumbnail = loadedThumbnail
             }
         }
     }
@@ -234,7 +233,11 @@ struct DocumentRow: View {
 }
 
 #Preview("Document Row") {
-    List {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: SavedDocument.self, configurations: config)
+    let repository = DocumentRepository(modelContext: container.mainContext)
+
+    return List {
         DocumentRow(
             document: SavedDocument(
                 internalFilename: "20251229-120000.pdf",
@@ -243,7 +246,8 @@ struct DocumentRow: View {
                 createdAt: Date().addingTimeInterval(-3600),
                 pageCount: 3
             ),
-            fileSize: "1.2 MB"
+            fileSize: "1.2 MB",
+            repository: repository
         )
     }
     .listStyle(.insetGrouped)

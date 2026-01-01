@@ -1,13 +1,20 @@
 import Foundation
+import SwiftData
+import UIKit
 
 /// Repository for persisting and retrieving saved documents
 actor DocumentRepository {
     private let fileManager = FileManager.default
-    private let metadataKey = "SavedDocuments"
+    private let modelContext: ModelContext
+    private let thumbnailService = ThumbnailService()
 
     /// Documents directory for storing PDFs
     private var documentsDirectory: URL {
         fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
     }
 
     /// Save a PDF document with metadata
@@ -16,7 +23,7 @@ actor DocumentRepository {
     ///   - displayName: The user-facing filename (including .pdf extension)
     ///   - pageCount: Number of pages in the document
     /// - Returns: The saved document metadata
-    func save(pdfData: Data, displayName: String, pageCount: Int) throws -> SavedDocument {
+    func save(pdfData: Data, displayName: String, pageCount: Int) async throws -> SavedDocument {
         // Generate timestamp-based internal filename (YYYYMMdd-HHmmss.pdf)
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyyMMdd-HHmmss"
@@ -36,10 +43,12 @@ actor DocumentRepository {
             pageCount: pageCount
         )
 
-        // Update metadata list
-        var documents = fetchAllMetadata()
-        documents.append(savedDocument)
-        saveMetadata(documents)
+        // Insert into SwiftData
+        modelContext.insert(savedDocument)
+        try modelContext.save()
+
+        // Generate and save thumbnail
+        try? await thumbnailService.generateAndSaveThumbnail(for: fileURL, documentID: savedDocument.id)
 
         return savedDocument
     }
@@ -49,62 +58,78 @@ actor DocumentRepository {
     ///   - id: The document ID
     ///   - newDisplayName: The new user-facing filename
     func updateDisplayName(id: UUID, newDisplayName: String) throws {
-        var documents = fetchAllMetadata()
+        let descriptor = FetchDescriptor<SavedDocument>(
+            predicate: #Predicate { $0.id == id }
+        )
 
-        guard let index = documents.firstIndex(where: { $0.id == id }) else {
+        guard let document = try modelContext.fetch(descriptor).first else {
             throw NSError(domain: "DocumentRepository", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "Document not found"
             ])
         }
 
-        documents[index].displayName = newDisplayName
-        saveMetadata(documents)
+        document.displayName = newDisplayName
+        try modelContext.save()
     }
 
     /// Fetch all saved documents, sorted by date (newest first)
     func fetchAll() -> [SavedDocument] {
-        let metadata = fetchAllMetadata()
+        let descriptor = FetchDescriptor<SavedDocument>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+
+        guard let documents = try? modelContext.fetch(descriptor) else {
+            return []
+        }
 
         // Filter out documents whose files no longer exist
-        return metadata.filter { fileManager.fileExists(atPath: $0.fileURL.path) }
-            .sorted { $0.createdAt > $1.createdAt }
+        return documents.filter { fileManager.fileExists(atPath: $0.fileURL.path) }
+    }
+
+    /// Regenerate thumbnail for a saved document
+    /// - Parameter id: The document ID
+    func regenerateThumbnail(id: UUID) async throws {
+        let descriptor = FetchDescriptor<SavedDocument>(
+            predicate: #Predicate { $0.id == id }
+        )
+
+        guard let document = try modelContext.fetch(descriptor).first else {
+            throw NSError(domain: "DocumentRepository", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "Document not found"
+            ])
+        }
+
+        try await thumbnailService.generateAndSaveThumbnail(for: document.fileURL, documentID: document.id)
+    }
+
+    /// Load thumbnail for a saved document
+    /// - Parameter id: The document ID
+    /// - Returns: The cached thumbnail image, or nil if not found
+    func loadThumbnail(id: UUID) async -> UIImage? {
+        return await thumbnailService.loadThumbnail(for: id)
     }
 
     /// Delete a saved document
     /// - Parameter id: The document ID
-    func delete(id: UUID) throws {
-        var documents = fetchAllMetadata()
+    func delete(id: UUID) async throws {
+        let descriptor = FetchDescriptor<SavedDocument>(
+            predicate: #Predicate { $0.id == id }
+        )
 
-        guard let index = documents.firstIndex(where: { $0.id == id }) else {
+        guard let document = try modelContext.fetch(descriptor).first else {
             return
         }
-
-        let document = documents[index]
 
         // Remove file from disk
         if fileManager.fileExists(atPath: document.fileURL.path) {
             try fileManager.removeItem(at: document.fileURL)
         }
 
-        // Remove from metadata
-        documents.remove(at: index)
-        saveMetadata(documents)
-    }
+        // Remove thumbnail
+        try? await thumbnailService.deleteThumbnail(for: document.id)
 
-    // MARK: - Private Helpers
-
-    private func fetchAllMetadata() -> [SavedDocument] {
-        guard let data = UserDefaults.standard.data(forKey: metadataKey),
-              let documents = try? JSONDecoder().decode([SavedDocument].self, from: data) else {
-            return []
-        }
-        return documents
-    }
-
-    private func saveMetadata(_ documents: [SavedDocument]) {
-        guard let data = try? JSONEncoder().encode(documents) else {
-            return
-        }
-        UserDefaults.standard.set(data, forKey: metadataKey)
+        // Remove from SwiftData
+        modelContext.delete(document)
+        try modelContext.save()
     }
 }

@@ -12,9 +12,25 @@ struct ScannedDocumentActionsView: View {
     let onFilenameConfirm: () -> Void
     let onPDFUpdate: (Data) -> Void
     let onPrepareEditFilename: () -> Void
+    let savedDocumentId: UUID?
+    let repository: DocumentRepository?
 
     @State private var thumbnail: UIImage?
     @State private var showPreview = false
+
+    init(document: Document, suggestedFilename: String, pdfData: Data, editedFilename: Binding<String>, onSave: @escaping () -> Void, onShare: @escaping () -> Void, onFilenameConfirm: @escaping () -> Void, onPDFUpdate: @escaping (Data) -> Void, onPrepareEditFilename: @escaping () -> Void, savedDocumentId: UUID? = nil, repository: DocumentRepository? = nil) {
+        self.document = document
+        self.suggestedFilename = suggestedFilename
+        self.pdfData = pdfData
+        self.editedFilename = editedFilename
+        self.onSave = onSave
+        self.onShare = onShare
+        self.onFilenameConfirm = onFilenameConfirm
+        self.onPDFUpdate = onPDFUpdate
+        self.onPrepareEditFilename = onPrepareEditFilename
+        self.savedDocumentId = savedDocumentId
+        self.repository = repository
+    }
 
     private var pdfFileSize: String {
         ByteCountFormatter.string(fromByteCount: Int64(pdfData.count), countStyle: .file)
@@ -128,30 +144,41 @@ struct ScannedDocumentActionsView: View {
     }
 
     private func loadThumbnail() {
-        Task.detached(priority: .background) {
-            let url = await previewURL
-            guard let pdfDocument = PDFDocument(url: url),
-                  let page = pdfDocument.page(at: 0) else {
-                return
+        // Try to load cached thumbnail if document was auto-saved
+        if let savedDocumentId = savedDocumentId, let repository = repository {
+            Task {
+                let cachedThumbnail = await repository.loadThumbnail(id: savedDocumentId)
+                await MainActor.run {
+                    thumbnail = cachedThumbnail
+                }
             }
+        } else {
+            // Fall back to generating thumbnail on-the-fly
+            Task.detached(priority: .background) {
+                let url = await previewURL
+                guard let pdfDocument = PDFDocument(url: url),
+                      let page = pdfDocument.page(at: 0) else {
+                    return
+                }
 
-            let pageRect = page.bounds(for: .mediaBox)
-            let scale: CGFloat = 396 / max(pageRect.width, pageRect.height) // 132pt * 3 for @3x
-            let thumbnailSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
+                let pageRect = page.bounds(for: .mediaBox)
+                let scale: CGFloat = 396 / max(pageRect.width, pageRect.height) // 132pt * 3 for @3x
+                let thumbnailSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
 
-            let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
-            let thumbnailImage = renderer.image { context in
-                UIColor.white.set()
-                context.fill(CGRect(origin: .zero, size: thumbnailSize))
+                let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
+                let thumbnailImage = renderer.image { context in
+                    UIColor.white.set()
+                    context.fill(CGRect(origin: .zero, size: thumbnailSize))
 
-                context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
-                context.cgContext.scaleBy(x: scale, y: -scale)
+                    context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
+                    context.cgContext.scaleBy(x: scale, y: -scale)
 
-                page.draw(with: .mediaBox, to: context.cgContext)
-            }
+                    page.draw(with: .mediaBox, to: context.cgContext)
+                }
 
-            await MainActor.run {
-                thumbnail = thumbnailImage
+                await MainActor.run {
+                    thumbnail = thumbnailImage
+                }
             }
         }
     }

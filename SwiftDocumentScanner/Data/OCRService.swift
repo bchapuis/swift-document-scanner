@@ -14,7 +14,7 @@ struct RecognizedText: Sendable {
 struct OCRResult: Sendable {
     let recognizedTexts: [RecognizedText]
 
-    /// Full text content joined with newlines (for backwards compatibility)
+    /// Full text content joined with newlines
     var fullText: String {
         recognizedTexts.map { $0.text }.joined(separator: "\n")
     }

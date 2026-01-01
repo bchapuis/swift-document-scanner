@@ -32,13 +32,4 @@ struct Document: Identifiable, Sendable {
         guard pages.indices.contains(index) else { return }
         pages[index].ocrResult = result
     }
-
-    /// Update OCR text for a specific page (backwards compatibility)
-    mutating func updatePageText(at index: Int, text: String) {
-        guard pages.indices.contains(index) else { return }
-        // Create a simple OCR result with no bounding boxes
-        pages[index].ocrResult = OCRResult(recognizedTexts: [
-            RecognizedText(text: text, boundingBox: .zero, confidence: 1.0)
-        ])
-    }
 }

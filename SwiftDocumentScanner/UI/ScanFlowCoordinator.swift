@@ -1,5 +1,6 @@
 import SwiftUI
 import VisionKit
+import SwiftData
 
 @MainActor
 @Observable
@@ -17,7 +18,11 @@ final class HomeViewModel {
 
     private let ocrService = OCRService()
     private let pdfService = PDFService()
-    private let documentRepository = DocumentRepository()
+    let documentRepository: DocumentRepository
+
+    init(modelContext: ModelContext) {
+        self.documentRepository = DocumentRepository(modelContext: modelContext)
+    }
 
     func startScanning() {
         // Check if document scanning is available on this device
@@ -148,6 +153,8 @@ final class HomeViewModel {
                     let allDocs = await documentRepository.fetchAll()
                     if let savedDoc = allDocs.first(where: { $0.id == docId }) {
                         try data.write(to: savedDoc.fileURL)
+                        // Regenerate thumbnail after PDF update
+                        try? await documentRepository.regenerateThumbnail(id: docId)
                     }
                 } catch {
                     print("Failed to update saved PDF: \(error)")
@@ -203,8 +210,20 @@ enum ScanDestination: Hashable {
 }
 
 struct ScanFlowCoordinator: View {
-    @State private var viewModel = HomeViewModel()
+    @Environment(\.modelContext) private var modelContext
+
+    var body: some View {
+        ScanFlowCoordinatorContent(modelContext: modelContext)
+    }
+}
+
+private struct ScanFlowCoordinatorContent: View {
+    @State private var viewModel: HomeViewModel
     @State private var navigationPath = NavigationPath()
+
+    init(modelContext: ModelContext) {
+        _viewModel = State(wrappedValue: HomeViewModel(modelContext: modelContext))
+    }
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -249,7 +268,9 @@ struct ScanFlowCoordinator: View {
                         onShare: viewModel.shareDocument,
                         onFilenameConfirm: viewModel.confirmEditedFilename,
                         onPDFUpdate: viewModel.updatePDFData,
-                        onPrepareEditFilename: viewModel.prepareEditFilename
+                        onPrepareEditFilename: viewModel.prepareEditFilename,
+                        savedDocumentId: viewModel.savedDocumentId,
+                        repository: viewModel.documentRepository
                     )
                 }
             }

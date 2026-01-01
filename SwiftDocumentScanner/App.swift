@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct SwiftDocumentScannerApp: App {
@@ -6,5 +7,6 @@ struct SwiftDocumentScannerApp: App {
         WindowGroup {
             ScanFlowCoordinator()
         }
+        .modelContainer(for: SavedDocument.self)
     }
 }

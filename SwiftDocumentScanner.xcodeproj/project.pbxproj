@@ -31,6 +31,7 @@
 		F4F4F4F4F4F4F4F4F4F4F4F4 /* SavedDocumentActionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4E4E4E4E4E4E4E4E4E4E4E4 /* SavedDocumentActionsView.swift */; };
 		8AAB0241670E4624AA48236C /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFD0687D6A434537B26A61A1 /* DesignSystem.swift */; };
 		B53332DE824B41EFB9BBAD18 /* DocumentActionsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4279994D14E446D8B6A6AED0 /* DocumentActionsComponents.swift */; };
+		D79F3BC429B24C0F8E62801E /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29BE39D2E8DB4E018DFD19C9 /* ThumbnailService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,6 +62,7 @@
 		F3F3F3F3F3F3F3F3F3F3F3F3 /* DocumentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentRepository.swift; sourceTree = "<group>"; };
 		DFD0687D6A434537B26A61A1 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		4279994D14E446D8B6A6AED0 /* DocumentActionsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentActionsComponents.swift; sourceTree = "<group>"; };
+		29BE39D2E8DB4E018DFD19C9 /* ThumbnailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,7 +145,7 @@
 				9D9E9E9D2B9E9E9E9E9E9E9D /* PDFService.swift */,
 				BDBEBBEBCDBEBEEBEBEBEBD /* SmartFilenameService.swift */,
 				F3F3F3F3F3F3F3F3F3F3F3F3 /* DocumentRepository.swift */,
-			);
+				29BE39D2E8DB4E018DFD19C9 /* ThumbnailService.swift */,);
 			path = Data;
 			sourceTree = "<group>";
 		};
@@ -239,7 +241,8 @@
 				F4F4F4F4F4F4F4F4F4F4F4F4 /* SavedDocumentActionsView.swift in Sources */,
 			
 				8AAB0241670E4624AA48236C /* DesignSystem.swift in Sources */,
-				B53332DE824B41EFB9BBAD18 /* DocumentActionsComponents.swift in Sources */,);
+				B53332DE824B41EFB9BBAD18 /* DocumentActionsComponents.swift in Sources */,
+				D79F3BC429B24C0F8E62801E /* ThumbnailService.swift in Sources */,);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */

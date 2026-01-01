@@ -118,19 +118,12 @@ actor PDFService {
         let baseName = await smartFilenameService.generateFilename(from: ocrText)
         return "\(baseName).pdf"
     }
-
-    /// Generates a fallback date-based filename for the PDF
-    /// - Returns: Filename in format "YYYY-MM-DD Scan.pdf"
-    func generateDateBasedFilename() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let dateString = dateFormatter.string(from: Date())
-        return "\(dateString) Scan.pdf"
-    }
 }
 
-// Safe array subscript extension
+// MARK: - Extensions
+
 extension Array {
+    /// Safe array subscript that returns nil if index is out of bounds
     subscript(safe index: Int) -> Element? {
         return indices.contains(index) ? self[index] : nil
     }

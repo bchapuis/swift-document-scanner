@@ -1,5 +1,6 @@
 import SwiftUI
 import PDFKit
+import SwiftData
 
 /// Actions view for saved documents - allows editing and sharing of previously scanned documents
 @MainActor
@@ -14,10 +15,11 @@ final class SavedDocumentActionsViewModel {
     var fileSize: String?
     var thumbnail: UIImage?
 
-    private let repository = DocumentRepository()
+    private let repository: DocumentRepository
 
-    init(document: SavedDocument) {
+    init(document: SavedDocument, modelContext: ModelContext) {
         self.document = document
+        self.repository = DocumentRepository(modelContext: modelContext)
         self.fileSize = getFileSize()
     }
 
@@ -41,30 +43,10 @@ final class SavedDocumentActionsViewModel {
     }
 
     func loadThumbnail() {
-        let fileURL = document.fileURL
-        Task.detached(priority: .background) {
-            guard let pdfDocument = PDFDocument(url: fileURL),
-                  let page = pdfDocument.page(at: 0) else {
-                return
-            }
-
-            let pageRect = page.bounds(for: .mediaBox)
-            let scale: CGFloat = 396 / max(pageRect.width, pageRect.height) // 132pt * 3 for @3x
-            let thumbnailSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
-
-            let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
-            let thumbnailImage = renderer.image { context in
-                UIColor.white.set()
-                context.fill(CGRect(origin: .zero, size: thumbnailSize))
-
-                context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
-                context.cgContext.scaleBy(x: scale, y: -scale)
-
-                page.draw(with: .mediaBox, to: context.cgContext)
-            }
-
+        Task {
+            let loadedThumbnail = await repository.loadThumbnail(id: document.id)
             await MainActor.run {
-                self.thumbnail = thumbnailImage
+                self.thumbnail = loadedThumbnail
             }
         }
     }
@@ -83,10 +65,17 @@ final class SavedDocumentActionsViewModel {
 
     func updatePDFData(_ data: Data) {
         pdfData = data
-        // Save the updated PDF back to disk
+        // Save the updated PDF back to disk and regenerate thumbnail
         Task {
             do {
                 try data.write(to: document.fileURL)
+                // Regenerate thumbnail after PDF update
+                try? await repository.regenerateThumbnail(id: document.id)
+                // Reload the updated thumbnail
+                let updatedThumbnail = await repository.loadThumbnail(id: document.id)
+                await MainActor.run {
+                    self.thumbnail = updatedThumbnail
+                }
             } catch {
                 print("Failed to save updated PDF: \(error)")
             }
@@ -124,10 +113,19 @@ final class SavedDocumentActionsViewModel {
 }
 
 struct SavedDocumentActionsView: View {
+    @Environment(\.modelContext) private var modelContext
+    let document: SavedDocument
+
+    var body: some View {
+        SavedDocumentActionsViewContent(document: document, modelContext: modelContext)
+    }
+}
+
+private struct SavedDocumentActionsViewContent: View {
     @State private var viewModel: SavedDocumentActionsViewModel
 
-    init(document: SavedDocument) {
-        _viewModel = State(wrappedValue: SavedDocumentActionsViewModel(document: document))
+    init(document: SavedDocument, modelContext: ModelContext) {
+        _viewModel = State(wrappedValue: SavedDocumentActionsViewModel(document: document, modelContext: modelContext))
     }
 
     var body: some View {
@@ -241,7 +239,7 @@ struct SavedDocumentActionsView: View {
             .ignoresSafeArea()
         }
         .sheet(isPresented: $viewModel.showShareSheet) {
-            ShareSheet(items: [viewModel.document.fileURL], filename: viewModel.document.displayName)
+            ShareSheet(items: [viewModel.pdfData], filename: viewModel.document.displayName)
         }
         .navigationDestination(isPresented: $viewModel.showPreview) {
             PDFPreviewView(pdfURL: viewModel.document.fileURL)
