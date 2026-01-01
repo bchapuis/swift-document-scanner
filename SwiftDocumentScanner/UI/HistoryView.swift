@@ -84,6 +84,7 @@ struct HistoryView: View {
 
 private struct HistoryViewContent: View {
     @State private var viewModel: HistoryViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(modelContext: ModelContext) {
         _viewModel = State(wrappedValue: HistoryViewModel(modelContext: modelContext))
@@ -115,6 +116,8 @@ private struct HistoryViewContent: View {
                 } label: {
                     Label("Sort", systemImage: "arrow.up.arrow.down")
                 }
+                .accessibilityLabel("Sort documents")
+                .accessibilityHint("Change the sorting order of your documents")
             }
         }
         .onAppear {
@@ -140,9 +143,10 @@ private struct HistoryViewContent: View {
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .accessibilityLabel("Delete \(document.displayName.replacingOccurrences(of: ".pdf", with: ""))")
                     }
                     .transaction { transaction in
-                        transaction.animation = .easeInOut(duration: 0.2)
+                        transaction.animation = reduceMotion ? nil : .easeInOut(duration: 0.2)
                     }
                 }
             }
@@ -156,6 +160,8 @@ private struct HistoryViewContent: View {
             systemImage: "doc.text.magnifyingglass",
             description: Text("Scanned documents will appear here")
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No scans yet. Scanned documents will appear here.")
     }
 }
 
@@ -193,7 +199,7 @@ struct DocumentRow: View {
             // Document Info
             VStack(alignment: .leading, spacing: 2) {
                 Text(document.displayName.replacingOccurrences(of: ".pdf", with: ""))
-                    .font(.body)
+                    .font(DesignSystem.Typography.body)
                     .lineLimit(2)
 
                 HStack(spacing: 4) {
@@ -205,15 +211,28 @@ struct DocumentRow: View {
                         Text(fileSize)
                     }
                 }
-                .font(.caption)
+                .font(DesignSystem.Typography.caption)
                 .foregroundStyle(.secondary)
             }
 
             Spacer()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityHint("Double tap to view document details")
         .task {
             loadThumbnail()
         }
+    }
+
+    private var accessibilityLabelText: String {
+        var label = document.displayName.replacingOccurrences(of: ".pdf", with: "")
+        label += ", \(document.pageCount) page\(document.pageCount == 1 ? "" : "s")"
+        if let fileSize = fileSize {
+            label += ", \(fileSize)"
+        }
+        label += ", scanned \(document.createdAt.formatted(.relative(presentation: .named)))"
+        return label
     }
 
     private func loadThumbnail() {

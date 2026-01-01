@@ -33,6 +33,8 @@ struct PDFKitEditView: UIViewRepresentable {
         pdfView.displayMode = .singlePageContinuous
         pdfView.displayDirection = .vertical
         pdfView.translatesAutoresizingMaskIntoConstraints = false
+        pdfView.accessibilityLabel = "PDF preview"
+        pdfView.accessibilityHint = "Swipe to navigate pages"
         containerView.addSubview(pdfView)
 
         // Create custom collection view for thumbnails with editing
@@ -52,6 +54,8 @@ struct PDFKitEditView: UIViewRepresentable {
         collectionView.dragDelegate = context.coordinator
         collectionView.dropDelegate = context.coordinator
         collectionView.dragInteractionEnabled = true
+        collectionView.accessibilityLabel = "Page thumbnails"
+        collectionView.accessibilityHint = "Swipe to navigate between pages. Double tap a page to view it. Drag to reorder pages."
         containerView.addSubview(collectionView)
 
         // Set up constraints
@@ -130,6 +134,11 @@ struct PDFKitEditView: UIViewRepresentable {
             cell.onDelete = { [weak self] in
                 self?.deletePage(at: indexPath.item)
             }
+            // Accessibility
+            cell.isAccessibilityElement = true
+            cell.accessibilityLabel = "Page \(indexPath.item + 1)"
+            cell.accessibilityHint = "Double tap to view this page. Swipe up or down to delete."
+            cell.accessibilityTraits = .button
             return cell
         }
 
@@ -227,6 +236,8 @@ class PDFThumbnailCell: UICollectionViewCell {
         deleteButton.layer.cornerRadius = 12
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
+        deleteButton.accessibilityLabel = "Delete page"
+        deleteButton.accessibilityTraits = .button
         contentView.addSubview(deleteButton)
 
         NSLayoutConstraint.activate([

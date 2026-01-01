@@ -18,11 +18,14 @@ struct FilenameEditorView: View {
                     .onSubmit {
                         saveAndDismiss()
                     }
+                    .accessibilityLabel("Document name")
+                    .accessibilityHint("Enter a name for your document")
             } header: {
                 Text("Document Name")
             } footer: {
                 if !filename.isEmpty {
                     Text("\(filename.count) characters")
+                        .accessibilityLabel("\(filename.count) characters")
                 }
             }
         }
@@ -34,6 +37,8 @@ struct FilenameEditorView: View {
                     saveAndDismiss()
                 }
                 .disabled(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityLabel("Done")
+                .accessibilityHint(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Enter a document name to continue" : "Save the document name and go back")
             }
 
             ToolbarItem(placement: .keyboard) {
@@ -42,6 +47,7 @@ struct FilenameEditorView: View {
                     Button("Done") {
                         isTextFieldFocused = false
                     }
+                    .accessibilityLabel("Dismiss keyboard")
                 }
             }
         }

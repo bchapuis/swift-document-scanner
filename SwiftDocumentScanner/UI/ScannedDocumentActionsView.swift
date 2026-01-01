@@ -75,6 +75,8 @@ struct ScannedDocumentActionsView: View {
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("PDF preview")
+                    .accessibilityHint("Double tap to view full PDF preview")
 
                     // Metadata
                     HStack(spacing: 4) {
@@ -84,8 +86,10 @@ struct ScannedDocumentActionsView: View {
                         Text("•")
                         Text(pdfFileSize)
                     }
-                    .font(.caption)
+                    .font(DesignSystem.Typography.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Document details: \(document.pageCount) page\(document.pageCount == 1 ? "" : "s"), \(pdfFileSize), scanned \(document.createdAt.formatted(.relative(presentation: .named)))")
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
@@ -103,11 +107,15 @@ struct ScannedDocumentActionsView: View {
                 ) {
                     Label("Edit Name", systemImage: "character.cursor.ibeam")
                 }
+                .accessibilityLabel("Edit document name")
+                .accessibilityHint("Current name: \(suggestedFilename.replacingOccurrences(of: ".pdf", with: ""))")
 
                 // Edit Pages
                 NavigationLink(destination: PDFEditorView(pdfData: pdfData, onUpdate: onPDFUpdate)) {
                     Label("Edit Pages", systemImage: "doc.on.doc")
                 }
+                .accessibilityLabel("Edit pages")
+                .accessibilityHint("Reorder or delete pages from the PDF")
             } header: {
                 Text("Edit")
             }
@@ -121,6 +129,8 @@ struct ScannedDocumentActionsView: View {
                     Label("Save to Files", systemImage: "folder.badge.plus")
                         .foregroundStyle(DesignSystem.Colors.primary)
                 }
+                .accessibilityLabel("Save to Files")
+                .accessibilityHint("Choose a location to save the PDF in the Files app")
 
                 // Share
                 Button {
@@ -128,6 +138,8 @@ struct ScannedDocumentActionsView: View {
                 } label: {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
+                .accessibilityLabel("Share")
+                .accessibilityHint("Share the PDF via email, messages, or other apps")
             } header: {
                 Text("Export")
             }

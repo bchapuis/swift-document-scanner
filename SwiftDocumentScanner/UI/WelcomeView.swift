@@ -4,41 +4,43 @@ import SwiftUI
 struct WelcomeView: View {
     let onScanTapped: () -> Void
     @State private var navigateToHistory = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         List {
             Section {
                 VStack(spacing: 0) {
                     Spacer()
-                        .frame(height: 60)
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 30 : 60)
 
                     // App Icon
                     Image(systemName: "doc.text.viewfinder")
-                        .font(.system(size: 80, weight: .thin))
+                        .font(.system(size: dynamicTypeSize.isAccessibilitySize ? 60 : 80, weight: .thin))
                         .foregroundStyle(DesignSystem.Colors.primary)
                         .symbolRenderingMode(.hierarchical)
+                        .accessibilityHidden(true)
 
                     Spacer()
-                        .frame(height: 32)
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 16 : 32)
 
                     // Title
                     Text("Document Scanner")
-                        .font(.system(size: 34, weight: .bold, design: .default))
-                        .tracking(-0.5)
+                        .font(DesignSystem.Typography.screenTitleLarge)
+                        .accessibilityAddTraits(.isHeader)
 
                     Spacer()
                         .frame(height: 12)
 
                     // Subtitle
                     Text("Scan documents and save as\nsearchable PDFs")
-                        .font(.system(size: 17, weight: .regular))
+                        .font(DesignSystem.Typography.body)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer()
-                        .frame(height: 48)
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 24 : 48)
 
                     // Primary Action
                     Button {
@@ -49,9 +51,12 @@ struct WelcomeView: View {
                             Text("Scan Document")
                         }
                         .frame(maxWidth: .infinity)
+                        .frame(minHeight: 44) // Minimum touch target
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    .accessibilityLabel("Scan Document")
+                    .accessibilityHint("Opens the camera to scan a new document")
 
                     Spacer()
                         .frame(height: 12)
@@ -65,9 +70,12 @@ struct WelcomeView: View {
                             Text("View Past Scans")
                         }
                         .frame(maxWidth: .infinity)
+                        .frame(minHeight: 44) // Minimum touch target
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.large)
+                    .accessibilityLabel("View Past Scans")
+                    .accessibilityHint("Shows your previously scanned documents")
 
                     Spacer()
                 }
@@ -80,6 +88,7 @@ struct WelcomeView: View {
         .navigationDestination(isPresented: $navigateToHistory) {
             HistoryView()
         }
+        .accessibilityElement(children: .contain)
     }
 }
 

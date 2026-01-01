@@ -128,6 +128,15 @@ private struct SavedDocumentActionsViewContent: View {
         _viewModel = State(wrappedValue: SavedDocumentActionsViewModel(document: document, modelContext: modelContext))
     }
 
+    private var metadataAccessibilityLabel: String {
+        var label = "Document details: \(viewModel.document.pageCount) page\(viewModel.document.pageCount == 1 ? "" : "s")"
+        if let fileSize = viewModel.fileSize {
+            label += ", \(fileSize)"
+        }
+        label += ", scanned \(viewModel.document.createdAt.formatted(.relative(presentation: .named)))"
+        return label
+    }
+
     var body: some View {
         List {
             // Header Section
@@ -161,6 +170,8 @@ private struct SavedDocumentActionsViewContent: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(viewModel.pdfData.isEmpty)
+                    .accessibilityLabel("PDF preview")
+                    .accessibilityHint(viewModel.pdfData.isEmpty ? "Preview loading" : "Double tap to view full PDF preview")
 
                     // Metadata
                     HStack(spacing: 4) {
@@ -172,8 +183,10 @@ private struct SavedDocumentActionsViewContent: View {
                             Text(fileSize)
                         }
                     }
-                    .font(.caption)
+                    .font(DesignSystem.Typography.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(metadataAccessibilityLabel)
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
@@ -191,12 +204,16 @@ private struct SavedDocumentActionsViewContent: View {
                 ) {
                     Label("Edit Name", systemImage: "character.cursor.ibeam")
                 }
+                .accessibilityLabel("Edit document name")
+                .accessibilityHint("Current name: \(viewModel.document.displayName.replacingOccurrences(of: ".pdf", with: ""))")
 
                 // Edit Pages
                 NavigationLink(destination: PDFEditorView(pdfData: viewModel.pdfData, onUpdate: viewModel.updatePDFData)) {
                     Label("Edit Pages", systemImage: "doc.on.doc")
                 }
                 .disabled(viewModel.pdfData.isEmpty)
+                .accessibilityLabel("Edit pages")
+                .accessibilityHint(viewModel.pdfData.isEmpty ? "Loading PDF data" : "Reorder or delete pages from the PDF")
             } header: {
                 Text("Edit")
             }
@@ -210,6 +227,8 @@ private struct SavedDocumentActionsViewContent: View {
                     Label("Save to Files", systemImage: "folder.badge.plus")
                         .foregroundStyle(DesignSystem.Colors.primary)
                 }
+                .accessibilityLabel("Save to Files")
+                .accessibilityHint("Choose a location to save the PDF in the Files app")
 
                 // Share
                 Button {
@@ -217,6 +236,8 @@ private struct SavedDocumentActionsViewContent: View {
                 } label: {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
+                .accessibilityLabel("Share")
+                .accessibilityHint("Share the PDF via email, messages, or other apps")
             } header: {
                 Text("Export")
             }

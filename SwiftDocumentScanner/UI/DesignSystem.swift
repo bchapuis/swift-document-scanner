@@ -36,24 +36,34 @@ enum DesignSystem {
     // MARK: - Typography
 
     /// Standard typography styles with semantic naming
+    /// All fonts support Dynamic Type for accessibility
     enum Typography {
-        /// Large screen title (e.g., Welcome screen)
+        /// Large screen title (e.g., Welcome screen) - scales with Dynamic Type
         static let screenTitleLarge: Font = .largeTitle.weight(.bold)
 
-        /// Standard screen title (e.g., Processing, Actions screens)
+        /// Standard screen title (e.g., Processing, Actions screens) - scales with Dynamic Type
         static let screenTitle: Font = .title2.weight(.semibold)
 
-        /// Primary action button text
+        /// Primary action button text - scales with Dynamic Type
         static let primaryButton: Font = .headline
 
-        /// Secondary action button text
+        /// Secondary action button text - scales with Dynamic Type
         static let secondaryButton: Font = .subheadline
 
-        /// Body text for descriptions
+        /// Body text for descriptions - scales with Dynamic Type
         static let body: Font = .body
 
-        /// Caption text for metadata
+        /// Caption text for metadata - scales with Dynamic Type
         static let caption: Font = .caption
+
+        /// Subheadline text - scales with Dynamic Type
+        static let subheadline: Font = .subheadline
+
+        /// Title text - scales with Dynamic Type
+        static let title: Font = .title
+
+        /// Title 3 text - scales with Dynamic Type
+        static let title3: Font = .title3
     }
 
     // MARK: - Icon Sizes

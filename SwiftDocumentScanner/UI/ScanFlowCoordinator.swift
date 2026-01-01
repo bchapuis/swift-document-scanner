@@ -237,11 +237,15 @@ private struct ScanFlowCoordinatorContent: View {
                                 .tint(.white)
 
                             Text("Processing...")
-                                .font(.subheadline)
+                                .font(DesignSystem.Typography.subheadline)
                                 .foregroundStyle(.white)
                         }
                         .padding(24)
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Processing document")
+                        .accessibilityHint("Performing OCR and generating PDF. Please wait.")
+                        .accessibilityAddTraits(.updatesFrequently)
                     }
                 }
             }
